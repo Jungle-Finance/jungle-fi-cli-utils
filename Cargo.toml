@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "jungle-fi-cli-utils",
+    "clap-v3-utils",
+    "multisig",
+]

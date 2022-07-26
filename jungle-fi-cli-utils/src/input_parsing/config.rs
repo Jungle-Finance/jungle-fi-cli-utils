@@ -1,0 +1,85 @@
+use std::str::FromStr;
+use anchor_client::Cluster;
+use anyhow::{anyhow, Result};
+use log::warn;
+use solana_cli_config::Config;
+use anchor_client::solana_sdk::signature::Keypair;
+use crate::input_parsing::keypair_from_path::keypair_from_path;
+
+pub const LOCALNET_URL: &str = "http://localhost:8899";
+pub const DEVNET_URL: &str = "https://api.devnet.solana.com";
+pub const MAINNET_BETA_URL: &str = "https://api.mainnet-beta.solana.com";
+
+
+/// Some operations require no signer, this function is simpler than similar ones
+/// that also acquire a signer.
+pub fn cluster_from_cli_config(
+    url: &Option<String>,
+    config: Option<&Config>,
+) -> Result<Cluster> {
+    let config_url = if let Some(config) = config {
+        config.json_rpc_url.clone()
+    } else {
+        let config = get_solana_cli_config()?;
+        config.json_rpc_url.clone()
+    };
+    if let Some(url) = url {
+        Ok(Cluster::from_str(url)?)
+    } else {
+        match config_url.as_ref() {
+            MAINNET_BETA_URL => Ok(Cluster::Mainnet),
+            DEVNET_URL => Ok(Cluster::Devnet),
+            LOCALNET_URL => Ok(Cluster::Localnet),
+            other => Ok(Cluster::from_str(other)?),
+        }
+    }
+}
+
+/// Acquire a client and keypair either from command-line optional args, or
+/// default to Solana CLI Config file.
+/// Since there is no `usb` or `pubkey` path, we don't need an [ArgMatches]
+/// and as a result, this function's return type becomes concrete, and
+/// its argument signature gets simpler.
+pub fn cluster_and_keypair_from_cli_config(
+    keypair_path: &Option<String>,
+    url: &Option<String>,
+) -> Result<(Cluster, Box<Keypair>)> {
+    let config = get_solana_cli_config();
+    let config = config.unwrap_or_else(|_| {
+        if keypair_path.is_none() {
+            warn!("No config file found or -k/--keypair provided, defaulting to ~/.config/solana/id.json");
+            println!("No config file found or -k/--keypair provided, defaulting to ~/.config/solana/id.json");
+        }
+        if url.is_none() {
+            warn!("No config file found or -u/--url provided, defaulting to localnet");
+            println!("No config file found or -u/--url provided, defaulting to localnet");
+        }
+        let mut config = Config::default();
+        config.json_rpc_url = LOCALNET_URL.to_string();
+        config
+    });
+    let cluster = cluster_from_cli_config(
+        url,
+        Some(&config)
+    )?;
+    let keypair_path = if let Some(path) = keypair_path {
+        path
+    } else {
+      &config.keypair_path
+    };
+    let keypair = keypair_from_path(
+        keypair_path,
+    )?;
+    Ok((cluster, keypair))
+}
+
+
+/// Load configuration from the standard Solana CLI config path.
+/// Those config values are used as defaults at runtime whenever
+/// keypair and/or url are not explicitly passed in.
+pub fn get_solana_cli_config() -> Result<Config> {
+    let config_file = solana_cli_config::CONFIG_FILE.as_ref()
+        .ok_or_else(|| anyhow!("unable to determine a config file path on this OS or user"))?;
+    Config::load(&config_file)
+        .map_err(|e| anyhow!("unable to load config file: {}", e.to_string()))
+}
