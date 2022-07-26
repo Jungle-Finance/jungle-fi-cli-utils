@@ -78,11 +78,3 @@ pub fn parse_signer(matches: &ArgMatches, path: &str) -> Result<Box<dyn Signer>>
     ).map_err(|e| anyhow!("Could not resolve signer: {:?}", e))?;
     Ok(signer)
 }
-
-/// Converts host and port strings to a [SocketAddr] type,
-/// and converts error handling to conform to [anyhow].
-pub fn resolve_socket_addr(host: &str, port: &str) -> Result<SocketAddr> {
-    let addr = format!("{}:{}", host, port);
-    addr.parse::<SocketAddr>()
-        .map_err(|_| anyhow!("Invalid host or port: {}:{}", host, port))
-}
