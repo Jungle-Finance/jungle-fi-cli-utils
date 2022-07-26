@@ -65,8 +65,17 @@ pub fn send_raw_signed_transaction(
     let signature = client.send(
         RpcRequest::SendTransaction,
         json!([raw_tx_b64, config])
-    )?;
-    Ok(signature)
+    );
+    match signature {
+        Ok(signature) => {
+            println!("Success: {}", signature);
+            Ok(signature)
+        },
+        Err(e) => {
+            let e = process_client_err(e);
+            Err(e.into())
+        },
+    }
 }
 
 /// Sign and send, with CLI prints
