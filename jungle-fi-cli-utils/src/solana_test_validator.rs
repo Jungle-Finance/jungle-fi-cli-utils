@@ -3,7 +3,9 @@
 /// The goal here is simply to complex structure to the loaded accounts and programs
 /// in a manner that is easier to define and manage using `--account` and `--bpf-program` flags.
 use std::str::FromStr;
+use anchor_cli::config::Manifest;
 use anchor_client::Cluster;
+use serde::{Serialize, Deserialize};
 use clap::Parser;
 use crossbeam::channel::Sender;
 use {
@@ -96,6 +98,37 @@ pub fn program_info(address: String, program: String) -> anyhow::Result<ProgramI
         loader: solana_sdk::bpf_loader::id(),
         program_path,
     })
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct IdlTestMetadata {
+    address: String,
+}
+
+/// Need to specify paths to all the programs in the repo.
+/// Anchor test will attempt to look for a "metadata" field on the IDL containing an address,
+/// and use that address to print transaction logs to `.anchor/program-logs`.
+pub fn setup_anchor_program_log(program_list: &[(String, PathBuf)]) -> anyhow::Result<()> {
+    for (address, path) in program_list {
+        let cargo = Manifest::from_path(&path.join("Cargo.toml"))?;
+        let version = cargo.version();
+        let idl = anchor_syn::idl::file::parse(
+            path.join("src/lib.rs"),
+            version,
+            true,
+            false,
+            false,
+        )?;
+        if let Some(mut idl) = idl {
+            idl.metadata = Some(serde_json::to_value(IdlTestMetadata { address: address.clone() })?);
+            let idl_out = PathBuf::from("target/idl")
+                .join(&idl.name)
+                .with_extension("json");
+            let idl_json = serde_json::to_string_pretty(&idl)?;
+            fs::write(idl_out, idl_json)?;
+        }
+    }
+    Ok(())
 }
 
 pub fn custom_localnet(
