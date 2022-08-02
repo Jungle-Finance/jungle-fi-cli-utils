@@ -8,6 +8,7 @@ use anchor_client::Cluster;
 use serde::{Serialize, Deserialize};
 use clap::Parser;
 use std::process::Command;
+use anyhow::anyhow;
 use crossbeam::channel::Sender;
 use {
     clap::{crate_name},
@@ -145,6 +146,10 @@ pub fn execute_localnet_with(
     }
     for (addr, filepath) in cloned_programs {
         args.extend(vec!["--bpf-program".to_string(), addr.clone(), filepath.clone()]);
+    }
+    for (addr, filepath) in project_programs {
+        let path = filepath.to_str().ok_or(anyhow!("Failed to parse filepath {:?}", filepath))?.to_string();
+        args.extend(vec!["--bpf-program".to_string(), addr.clone(), path]);
     }
     args.extend(extra_args.clone());
     setup_anchor_program_log(&project_programs)?;
