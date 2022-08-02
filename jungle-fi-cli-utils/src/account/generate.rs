@@ -8,8 +8,7 @@ use anchor_client::solana_sdk::pubkey;
 use serde_json::json;
 use anyhow::Result;
 use solana_program::pubkey::{Pubkey};
-
-const SYSTEM_PROGRAM: Pubkey = pubkey!("11111111111111111111111111111111");
+use solana_program::system_program;
 
 /// Create account data wholecloth, from any type that implements
 /// [anchor_lang::AccountSerialize] and [anchor_lang::AccountDeserialize].
@@ -25,7 +24,7 @@ pub trait GeneratedAccount {
     }
 
     fn owner(&self) -> Pubkey {
-        SYSTEM_PROGRAM
+        system_program::id()
     }
 
     fn executable(&self) -> bool {
@@ -38,6 +37,10 @@ pub trait GeneratedAccount {
 
     fn save_location(&self) -> String {
         format!("{}.json", self.address().to_string())
+    }
+
+    fn arg(&self) -> Vec<String> {
+        vec!["--account".to_string(), self.address().to_string(), self.save_location()]
     }
 
     // Can add this data type directly to a [TestValidatorGenesis] accounts to load.
@@ -79,6 +82,10 @@ pub trait ClonedAccount {
 
     fn save_location(&self) -> String {
         format!("{}.json", self.address().to_string())
+    }
+
+    fn arg(&self) -> Vec<String> {
+        vec!["--account".to_string(), self.address().to_string(), self.save_location()]
     }
 
     /// Default implementation performs no modification
