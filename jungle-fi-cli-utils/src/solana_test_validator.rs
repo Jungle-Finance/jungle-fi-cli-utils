@@ -1,10 +1,11 @@
 use std::fs;
 use std::path::PathBuf;
-use std::str::from_utf8;
 use anchor_cli::config::Manifest;
 use serde::{Serialize, Deserialize};
 use std::process::{Command, Stdio};
 
+/// Metadata fields to add to the IDL.
+/// Anchor test localnet program logs expect the `address` field.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct IdlTestMetadata {
     address: String,
@@ -36,6 +37,12 @@ pub fn setup_anchor_program_log(program_list: &[(String, PathBuf)]) -> anyhow::R
     Ok(())
 }
 
+/// Run `solana-test-validator` with some prespecified accounts and cloned programs.
+/// [accounts] is a list of `--accounts` args. [cloned_programs] is for `--bpf-program` args.
+/// [project_programs] should be a list of all the `lib.rs` files for the programs being
+/// developed in this project.
+/// The lib.rs files referenced in the [project_programs] parameter still need
+/// their corresponding `.so` files listed in [cloned_programs].
 pub fn execute_localnet_with(
     accounts: &Vec<Vec<String>>,
     cloned_programs: &Vec<(String, String)>,
@@ -51,13 +58,7 @@ pub fn execute_localnet_with(
     }
     args.extend(extra_args.clone());
     setup_anchor_program_log(&project_programs)?;
-    execute_localnet_with_extra_accounts(&args)?;
-    Ok(())
-}
 
-pub fn execute_localnet_with_extra_accounts(
-    args: &Vec<String>,
-) -> anyhow::Result<()> {
     let mut cmd = Command::new("solana-test-validator");
     for item in args {
         cmd.arg(item);
@@ -66,8 +67,6 @@ pub fn execute_localnet_with_extra_accounts(
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
         .spawn()?;
-    let output = child.wait_with_output()?;
-    let out = from_utf8(&output.stdout)?;
-    println!("{:?}", out);
+    let _ = child.wait_with_output()?;
     Ok(())
 }
