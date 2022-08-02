@@ -4,7 +4,6 @@ use anchor_client::solana_sdk::account::{Account, AccountSharedData, ReadableAcc
 use solana_program::clock::Epoch;
 use solana_account_decoder::UiAccount;
 use std::fs::File;
-use anchor_client::solana_sdk::pubkey;
 use serde_json::json;
 use anyhow::Result;
 use solana_program::pubkey::{Pubkey};
