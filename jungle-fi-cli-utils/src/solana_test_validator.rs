@@ -20,7 +20,7 @@ pub fn setup_anchor_program_log(program_list: &[(String, PathBuf)]) -> anyhow::R
         let idl = anchor_syn::idl::file::parse(
             path.join("src/lib.rs"),
             version,
-            true,
+            false,
             false,
             false,
         )?;
