@@ -7,31 +7,24 @@ use anchor_client::solana_sdk::signature::Keypair;
 use crate::input_parsing::keypair_from_path::keypair_from_path;
 
 pub const LOCALNET_URL: &str = "http://localhost:8899";
-pub const DEVNET_URL: &str = "https://api.devnet.solana.com";
-pub const MAINNET_BETA_URL: &str = "https://api.mainnet-beta.solana.com";
 
-
-/// Some operations require no signer, this function is simpler than similar ones
-/// that also acquire a signer.
-pub fn cluster_from_cli_config(
+/// Return a cluster based on an optional url or [Config] object. If no
+/// such object has been acquired, it can be left blank and fetched during
+/// this function's call.
+pub fn resolve_cluster(
     url: &Option<String>,
     config: Option<&Config>,
 ) -> Result<Cluster> {
-    let config_url = if let Some(config) = config {
-        config.json_rpc_url.clone()
-    } else {
-        let config = get_solana_cli_config()?;
-        config.json_rpc_url.clone()
-    };
     if let Some(url) = url {
         Ok(Cluster::from_str(url)?)
     } else {
-        match config_url.as_ref() {
-            MAINNET_BETA_URL => Ok(Cluster::Mainnet),
-            DEVNET_URL => Ok(Cluster::Devnet),
-            LOCALNET_URL => Ok(Cluster::Localnet),
-            other => Ok(Cluster::from_str(other)?),
-        }
+        let config_url = if let Some(config) = config {
+            config.json_rpc_url.clone()
+        } else {
+            let config = get_solana_cli_config()?;
+            config.json_rpc_url.clone()
+        };
+        Ok(Cluster::from_str(&config_url)?)
     }
 }
 
@@ -58,7 +51,7 @@ pub fn cluster_and_keypair_from_cli_config(
         config.json_rpc_url = LOCALNET_URL.to_string();
         config
     });
-    let cluster = cluster_from_cli_config(
+    let cluster = resolve_cluster(
         url,
         Some(&config)
     )?;

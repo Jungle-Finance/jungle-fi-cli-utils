@@ -1,10 +1,7 @@
 /// Mostly copy-pasted CLI code from Solana SDK, and narrowed to a [Keypair]
 /// instead of a [Signer] trait object.
-/// This necessitates the removal of the `usb` and `pubkey` prefixes
-/// from the CLI keypair input. The downside is that this means
-/// the program has full custody over the keypair. However, this is a
-/// necessary design feature of use cases that involve automated signing
-/// (e.g. a server that creates and signs transactions on request).
+/// While this necessitates the removal of the `usb` and `pubkey` input prefixes,
+/// it allows for flexibility in input to an automated signing server.
 use anyhow::anyhow;
 use solana_clap_v3_utils::keypair::keypair_from_seed_phrase;
 use anchor_client::solana_sdk::derivation_path::{DerivationPath, DerivationPathError};
