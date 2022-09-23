@@ -370,7 +370,7 @@ impl DefaultSigner {
     }
 }
 
-pub(crate) struct SignerSource {
+pub struct SignerSource {
     pub kind: SignerSourceKind,
     pub derivation_path: Option<DerivationPath>,
     pub legacy: bool,
@@ -400,7 +400,7 @@ const SIGNER_SOURCE_USB: &str = "usb";
 const SIGNER_SOURCE_STDIN: &str = "stdin";
 const SIGNER_SOURCE_PUBKEY: &str = "pubkey";
 
-pub(crate) enum SignerSourceKind {
+pub enum SignerSourceKind {
     Prompt,
     Filepath(String),
     Usb(RemoteWalletLocator),
