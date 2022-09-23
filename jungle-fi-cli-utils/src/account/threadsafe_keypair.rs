@@ -3,11 +3,11 @@ use solana_program::pubkey::Pubkey;
 use solana_sdk::signature::{Signature, Signer, SignerError};
 
 /// [impl Signer] in a threadsafe way.
-pub struct ThreadsafeSigner {
-    pub inner: Arc<RwLock<Box<dyn Signer>>>,
+pub struct ThreadsafeSigner<T: Signer> {
+    pub inner: Arc<RwLock<T>>,
 }
 
-impl Clone for ThreadsafeSigner {
+impl<T: Signer> Clone for ThreadsafeSigner<T> {
     fn clone(&self) -> Self {
         Self {
             inner: Arc::clone(&self.inner),
@@ -15,7 +15,7 @@ impl Clone for ThreadsafeSigner {
     }
 }
 
-impl Signer for ThreadsafeSigner {
+impl<T: Signer> Signer for ThreadsafeSigner<T> {
     fn try_pubkey(&self) -> Result<Pubkey, SignerError> {
         Ok(self.inner.read().unwrap().pubkey())
     }
