@@ -187,7 +187,7 @@ pub fn write_to_file(
 fn basename(path: &str, sep: char) -> String {
     let mut pieces = path.rsplit(sep);
     match pieces.next() {
-        Some(p) => p.into(),
-        None => path.into(),
-    }.to_string()
+        Some(p) => p.to_string(),
+        None => path.to_string(),
+    }
 }
