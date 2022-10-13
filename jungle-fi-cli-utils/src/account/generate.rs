@@ -53,7 +53,7 @@ pub trait GeneratedAccount {
         };
         let name = basename(&location, '/');
         let (name, _) = name.split_at(name.len() - 5);
-        let name = name.to_kebab_case().to_camel_case();
+        let name = name.to_string().to_camel_case();
         format!("import * as {} from \"../{}\";\nexport {};", &name, location, &name)
     }
 
