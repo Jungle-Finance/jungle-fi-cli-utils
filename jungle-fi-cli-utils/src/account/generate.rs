@@ -189,5 +189,5 @@ fn basename(path: &str, sep: char) -> String {
     match pieces.next() {
         Some(p) => p.into(),
         None => path.into(),
-    }.into()
+    }.to_string()
 }
