@@ -9,6 +9,7 @@ use serde_json::json;
 use anyhow::Result;
 use solana_program::pubkey::{Pubkey};
 use solana_program::system_program;
+use inflector::Inflector;
 
 /// Create account data wholecloth, from any type that implements
 /// [anchor_lang::AccountSerialize] and [anchor_lang::AccountDeserialize].
