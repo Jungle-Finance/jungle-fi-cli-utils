@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use anchor_client::anchor_lang::{AccountDeserialize, AccountSerialize};
 use anchor_client::solana_client::rpc_client::RpcClient;
 use anchor_client::solana_sdk::account::{Account, AccountSharedData, ReadableAccount};
@@ -40,6 +41,12 @@ pub trait GeneratedAccount {
 
     fn arg(&self) -> Vec<String> {
         vec!["--account".to_string(), self.address().to_string(), self.save_location()]
+    }
+
+    fn test_import(&self) -> String {
+        let location = self.save_location();
+        let name = basename(&location, '/');
+        format!("import * as {} from \"../{}\";\nexport {};", &name, location, &name)
     }
 
     // Can add this data type directly to a [TestValidatorGenesis] accounts to load.
@@ -175,4 +182,12 @@ pub fn write_to_file(
                 }),
     )?;
     Ok(())
+}
+
+fn basename(path: &str, sep: char) -> String {
+    let mut pieces = path.rsplit(sep);
+    match pieces.next() {
+        Some(p) => p.into(),
+        None => path.into(),
+    }.into()
 }
