@@ -45,7 +45,15 @@ pub trait GeneratedAccount {
 
     fn test_import(&self) -> String {
         let location = self.save_location();
+        let location = if !location.ends_with(".json") {
+            let (_, location) = location.split_at(location.len()-5);
+            location.to_string()
+        } else {
+            location
+        };
         let name = basename(&location, '/');
+        let (name, _) = name.split_at(name.len() - 5);
+        let name = name.to_kebab_case().to_camel_case();
         format!("import * as {} from \"../{}\";\nexport {};", &name, location, &name)
     }
 
