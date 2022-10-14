@@ -200,10 +200,10 @@ fn js_test_import(location: &str) -> String {
         let (_, location) = location.split_at(location.len()-5);
         location.to_string()
     } else {
-        location
+        location.to_string()
     };
     let name = basename(&location, '/');
     let (name, _) = name.split_at(name.len() - 5);
     let name = name.to_string().to_camel_case();
-    format!("import * as {}Json from \"../{}\";\nexport const {} = new anchor.web3.PublicKey({}Json.pubkey);", &name, location, &name, &name)
+    format!("import * as {}Json from \"../{}\";\nexport const {} = new anchor.web3.PublicKey({}Json.pubkey);", &name, &location, &name, &name)
 }
