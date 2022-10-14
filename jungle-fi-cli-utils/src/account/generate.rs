@@ -55,7 +55,7 @@ pub trait GeneratedAccount {
         let name = basename(&location, '/');
         let (name, _) = name.split_at(name.len() - 5);
         let name = name.to_string().to_camel_case();
-        format!("import * as {}Json from \"../{}\";\nexport const {} as new anchor.web3.PublicKey({}Json.publicKey);", &name, location, &name, &name)
+        format!("import * as {}Json from \"../{}\";\nexport const {} = new anchor.web3.PublicKey({}Json.publicKey);", &name, location, &name, &name)
     }
 
     // Can add this data type directly to a [TestValidatorGenesis] accounts to load.
