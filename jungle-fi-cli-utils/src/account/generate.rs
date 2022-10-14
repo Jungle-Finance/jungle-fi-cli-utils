@@ -44,18 +44,8 @@ pub trait GeneratedAccount {
         vec!["--account".to_string(), self.address().to_string(), self.save_location()]
     }
 
-    fn test_import(&self) -> String {
-        let location = self.save_location();
-        let location = if !location.ends_with(".json") {
-            let (_, location) = location.split_at(location.len()-5);
-            location.to_string()
-        } else {
-            location
-        };
-        let name = basename(&location, '/');
-        let (name, _) = name.split_at(name.len() - 5);
-        let name = name.to_string().to_camel_case();
-        format!("import * as {}Json from \"../{}\";\nexport const {} = new anchor.web3.PublicKey({}Json.pubkey);", &name, location, &name, &name)
+    fn js_import(&self) -> String {
+        js_test_import(&self.save_location())
     }
 
     // Can add this data type directly to a [TestValidatorGenesis] accounts to load.
@@ -101,6 +91,10 @@ pub trait ClonedAccount {
 
     fn arg(&self) -> Vec<String> {
         vec!["--account".to_string(), self.address().to_string(), self.save_location()]
+    }
+
+    fn js_import(&self) -> String {
+        js_test_import(&self.save_location())
     }
 
     /// Default implementation performs no modification
@@ -199,4 +193,17 @@ fn basename(path: &str, sep: char) -> String {
         Some(p) => p.to_string(),
         None => path.to_string(),
     }
+}
+
+fn js_test_import(location: &str) -> String {
+    let location = if !location.ends_with(".json") {
+        let (_, location) = location.split_at(location.len()-5);
+        location.to_string()
+    } else {
+        location
+    };
+    let name = basename(&location, '/');
+    let (name, _) = name.split_at(name.len() - 5);
+    let name = name.to_string().to_camel_case();
+    format!("import * as {}Json from \"../{}\";\nexport const {} = new anchor.web3.PublicKey({}Json.pubkey);", &name, location, &name, &name)
 }
