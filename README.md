@@ -9,8 +9,7 @@ There are QoL functions in here to assist with:
 - Account data parsing, generation, (de-)serialization
 - Transaction execution, signing, and serialization
 
-#### Question: Why is Solana clap-v3 utils and Project Serum Multisig in here?
-Because we want to use them as dependencies, but there are version conflicts
+#### Question: Why is Solana clap-v3 utils in here?
+Because we want to use it as a dependency, but there are version conflicts
 with the officially released Anchor crates.
-The cargo-culted clap-v3 crate will get phased out when Anchor updates to use >=1.11.0,
-and the multisig instance will get phased out when its upstream Cargo.toml bumps to 0.25.0.
+The cargo-culted clap-v3 crate will get phased out when the latest Anchor release supports Solana >=1.11.0,

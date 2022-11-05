@@ -1,6 +1,10 @@
 [workspace]
 members = [
-    "jungle-fi-cli-utils",
     "clap-v3-utils",
-    "multisig",
+    "cli-utils",
+    "rpc-client-headers",
+    "genesys_go_rpc_auth",
+    "localnet-tools",
+    "client-tx-processor",
+    "threadsafe-signer"
 ]

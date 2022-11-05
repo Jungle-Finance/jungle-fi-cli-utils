@@ -1,8 +1,12 @@
+/// The struct below wraps the often-acquired [Box<dyn<Signer>>] to:
+/// 1. Satisfy [T: Signer].
+/// 2. Is threadsafe.
+/// 3. Serve as a signer with the [Clone] trait.
 use std::sync::{Arc, Mutex};
 use solana_program::pubkey::Pubkey;
 use solana_sdk::signature::{Signature, Signer, SignerError};
 
-/// [impl Signer] in a threadsafe way.
+/// Basic struct that [impl Signer + Clone + Send + Sync].
 pub struct ThreadsafeSigner {
     pub inner: Arc<Mutex<Box<dyn Signer>>>,
 }

@@ -1,43 +1,48 @@
-/// Implements SPL Token types, mostly delegating to the underlying
-/// Anchor SPL implementation, but with an added implementation of
-/// `anchor_lang::AccountSerialize`. The vanilla Anchor SPL types
-/// use the default implementation of `AccountSerialize::try_serialize`,
-/// which does not write anything to the `T: Write` passed into it.
+/// These are a more complete implementation of the Anchor (de-)serialization layer on
+/// SPL Token types. We can delegate to the underlying implementation for deserialization,
+/// but we need to add a non-default implementation of [anchor_lang::AccountSerialize],
+/// as that method's current default implementation writes nothing to the byte-buffer.
+///
+/// To generate or clone an SPL-token account, use these types as your
+/// [GeneratedAccount::T] or [ClonedAccount::T].
 use std::io::Write;
 use std::ops::Deref;
 use anchor_client::anchor_lang::{AccountDeserialize, AccountSerialize, Owner};
-use anchor_spl::token::{Mint, TokenAccount};
 use solana_program::program_pack::Pack;
 use solana_program::pubkey::Pubkey;
 use solana_program::program_option::COption;
-use solana_sdk::pubkey;
 
-pub const SPL_TOKEN_PROGRAM: Pubkey = pubkey!("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
-
-/// The Mint account type for SPL Token Program.
-pub struct MintWrapper(Mint);
+/// [anchor_spl::token::Mint] omits a serialization implementation,
+/// preventing it from being useful in a number of use-cases.
+/// [MintWrapper] solves this by re-implementing the relevant Anchor traits,
+/// delegating implementation to the `anchor_spl` type where possible.
+pub struct MintWrapper(anchor_spl::token::Mint);
 
 impl MintWrapper {
     pub const LEN: usize = spl_token::state::Mint::LEN;
 
+    /// Preferred factory function to convert into this data type.
     pub fn from_mint(mint: anchor_spl::token::Mint) -> Self {
         Self(mint)
     }
 }
 
+/// Anchor uses this trait to enforce proper program ownership during account deserialization.
 impl Owner for MintWrapper {
     fn owner() -> Pubkey {
-        Mint::owner()
+        anchor_spl::token::Mint::owner()
     }
 }
 
 impl AccountDeserialize for MintWrapper {
     fn try_deserialize_unchecked(buf: &mut &[u8]) -> anchor_client::anchor_lang::Result<Self> {
-        let mint = Mint::try_deserialize_unchecked(buf)?;
+        let mint = anchor_spl::token::Mint::try_deserialize_unchecked(buf)?;
         Ok(MintWrapper(mint))
     }
 }
 
+/// This is the primary reason this entire codebase exists, otherwise we could simply
+/// use the [anchor-spl] crate.
 impl AccountSerialize for MintWrapper {
     fn try_serialize<W: Write>(&self, _writer: &mut W) -> anchor_client::anchor_lang::Result<()> {
         // these are the only four lines that matter
@@ -49,6 +54,7 @@ impl AccountSerialize for MintWrapper {
     }
 }
 
+/// Unpacks the wrapper class into its wrapped type.
 impl Deref for MintWrapper {
     type Target = spl_token::state::Mint;
 
@@ -57,30 +63,37 @@ impl Deref for MintWrapper {
     }
 }
 
-/// The TokenAccount account type for SPL Token Program.
-pub struct TokenAccountWrapper(TokenAccount);
+/// [anchor_spl::token::TokenAccount] omits a serialization implementation,
+/// preventing it from being useful in a number of use-cases.
+/// [TokenAccountWrapper] solves this by re-implementing the relevant Anchor traits,
+/// delegating implementation to the `anchor_spl` type where possible.
+pub struct TokenAccountWrapper(anchor_spl::token::TokenAccount);
 
 impl TokenAccountWrapper {
     pub const LEN: usize = spl_token::state::Account::LEN;
 
+    /// Preferred factory function to convert into this data type.
     pub fn from_token_account(token_account: anchor_spl::token::TokenAccount) -> Self {
         Self(token_account)
     }
 }
 
+/// Anchor uses this trait to enforce proper program ownership during account deserialization.
 impl Owner for TokenAccountWrapper {
     fn owner() -> Pubkey {
-        TokenAccount::owner()
+        anchor_spl::token::TokenAccount::owner()
     }
 }
 
 impl AccountDeserialize for TokenAccountWrapper {
     fn try_deserialize_unchecked(buf: &mut &[u8]) -> anchor_client::anchor_lang::Result<Self> {
-        let token_act = TokenAccount::try_deserialize_unchecked(buf)?;
+        let token_act = anchor_spl::token::TokenAccount::try_deserialize_unchecked(buf)?;
         Ok(TokenAccountWrapper(token_act))
     }
 }
 
+/// This is again the primary reason this entire codebase exists, otherwise we could simply
+/// use the [anchor-spl] crate.
 impl AccountSerialize for TokenAccountWrapper {
     fn try_serialize<W: Write>(&self, _writer: &mut W) -> anchor_client::anchor_lang::Result<()> {
         // these are the only four lines that matter
@@ -92,6 +105,7 @@ impl AccountSerialize for TokenAccountWrapper {
     }
 }
 
+/// Unpacks the wrapper class into its wrapped type.
 impl Deref for TokenAccountWrapper {
     type Target = spl_token::state::Account;
 
@@ -101,11 +115,12 @@ impl Deref for TokenAccountWrapper {
 }
 
 /// Convenience function, basically a constructor with some opinionated defaults.
+/// See source code below for which parameters are chosen for the user.
 pub fn arbitrary_mint_account(
     authority: &Pubkey,
     supply: u64,
     decimals: u8,
-) -> Mint {
+) -> anchor_spl::token::Mint {
     let mint_act = spl_token::state::Mint {
         mint_authority: COption::Some(*authority),
         supply,
@@ -113,17 +128,21 @@ pub fn arbitrary_mint_account(
         is_initialized: true,
         freeze_authority: COption::Some(*authority),
     };
+    // Since [anchor_spl::Mint] has no public constructor other than deserialization,
+    // We have to do it this way if we want to wield an Anchor-compatible object
+    // instead of the vanilla [spl_token::state::Account].
     let mut serialized = vec!(0; 82);  // len found in `mint_act.pack_to_slice`
     mint_act.pack_into_slice(& mut serialized);
-    Mint::try_deserialize(&mut serialized.as_slice()).unwrap()
+    anchor_spl::token::Mint::try_deserialize(&mut serialized.as_slice()).unwrap()
 }
 
 /// Convenience function, basically a constructor with some opinionated defaults.
+/// See source code below for which parameters are chosen for the user.
 pub fn arbitrary_token_account(
     mint: &Pubkey,
     owner: &Pubkey,
     amount: u64,
-) -> TokenAccount {
+) -> anchor_spl::token::TokenAccount {
     let token_act = spl_token::state::Account {
         mint: *mint,
         owner: *owner,
@@ -134,10 +153,10 @@ pub fn arbitrary_token_account(
         delegated_amount: 0,
         close_authority: COption::Some(*owner),
     };
-    // Since TokenAccount has no public constructor other than deserialization,
+    // Since [anchor_spl::TokenAccount] has no public constructor other than deserialization,
     // We have to do it this way if we want to wield an Anchor-compatible object
-    // instead of the vanilla `spl_token::state::Acccount`.
+    // instead of the vanilla `spl_token::state::Account`.
     let mut serialized = vec!(0; 165);
     token_act.pack_into_slice(& mut serialized);
-    TokenAccount::try_deserialize(&mut serialized.as_slice()).unwrap()
+    anchor_spl::token::TokenAccount::try_deserialize(&mut serialized.as_slice()).unwrap()
 }

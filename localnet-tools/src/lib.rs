@@ -1,11 +1,22 @@
+/// A variety of QoL functions and tooling to do extensive
+/// localnet setup and testing.
 use std::io::Write;
 use anchor_client::anchor_lang;
-use anchor_client::anchor_lang::Id;
-use anchor_client::anchor_lang::prelude::System;
-use anchor_client::solana_sdk::bs58;
 use solana_program::pubkey::Pubkey;
 use solana_program::clock::Epoch;
 use solana_account_decoder::{UiAccount, UiAccountData, UiAccountEncoding};
+use anchor_client::anchor_lang::prelude::System;
+use anchor_client::anchor_lang::Id;
+use solana_sdk::bs58;
+
+mod wrapped_spl_types;
+mod generate_account;
+mod clone_account;
+pub mod anchor_test_log_workaround;
+
+pub use generate_account::GeneratedAccount;
+pub use clone_account::ClonedAccount;
+pub use wrapped_spl_types::{arbitrary_mint_account, MintWrapper, arbitrary_token_account, TokenAccountWrapper};
 
 /// Creates account info struct of the correct type
 /// expected by `solana-test-validator --account`.
@@ -29,8 +40,8 @@ pub fn ui_account(
     }
 }
 
-/// Pass this in as type T for accounts that have no data,
-/// and which are owned by `SystemProgram` (e.g. typical user accounts).
+/// Use this struct as type T for any [GeneratedAccount] or [ClonedAccount]
+/// owned by `SystemProgram` (e.g. typical user accounts).
 pub struct SystemAccount;
 
 impl SystemAccount {

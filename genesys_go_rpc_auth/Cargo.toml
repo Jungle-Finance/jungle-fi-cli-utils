@@ -1,0 +1,13 @@
+[package]
+name = "solana-genesys_go_rpc_auth"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serde_json = "1.0.81"
+serde = "1.0.140"
+anyhow = "1.0.58"
+anchor-client = "0.25.0"
+solana-sdk = "1.10.29"

@@ -1,7 +1,8 @@
 /// Mostly copy-pasted CLI code from Solana SDK, and narrowed to a [Keypair]
-/// instead of a [Signer] trait object.
+/// instead of a [Box<dyn<Signer>>].
 /// While this necessitates the removal of the `usb` and `pubkey` input prefixes,
-/// it allows for flexibility in input to an automated signing server.
+/// It returns a concrete type, and also allows for flexibility
+/// when designing a system to safely pass a keypair to an automated signing server at startup.
 use anyhow::anyhow;
 use solana_clap_v3_utils::keypair::keypair_from_seed_phrase;
 use anchor_client::solana_sdk::derivation_path::{DerivationPath, DerivationPathError};

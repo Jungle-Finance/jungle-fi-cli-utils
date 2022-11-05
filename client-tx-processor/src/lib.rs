@@ -1,71 +1,87 @@
-use anchor_client::solana_client;
+mod error;
+mod interface_types;
+/// Define a struct representing a transaction schema.
+/// Implementing [TransactionProcessor] allows for a number of
+/// approaches to processing the transaction, from the most common
+/// case of signing and sending, to more niche cases of printing instruction
+/// data to use as a multisig proposal.
+///
+/// -- Example Usage
+///
+/// /// Simple memo transaction
+/// pub struct Memo {
+///     message: String,
+/// }
+///
+/// impl TransactionProcessor for Memo {
+///     type OnlineArgs = ();
+///     type RemainingArgs = ();
+///
+///     fn get_online_args(&self, _: &RpcClient) -> Result<Self::OnlineArgs, TransactionProcessorError> {
+///         Ok(())
+///     }
+///
+///     fn metadata(&self, primary_signer: &Pubkey, _: &Self::OnlineArgs, _: &Self::RemainingArgs) -> Map<String, Value> {
+///         let mut map = Map::new();
+///         map.insert("message".to_string(), Value::String(self.message.to_string()));
+///         map.insert("signer".to_string(), Value::String(primary_signer.to_string()));
+///         map
+///     }
+///
+///     fn name(&self, _: &Pubkey, _: &Self::OnlineArgs, _: &Self::RemainingArgs) -> String {
+///         format!("memo: {}", self.message)
+///     }
+///
+///     fn calc_remaining_args(&self, _: &Self::OnlineArgs, _: &Pubkey) -> Result<Self::RemainingArgs, TransactionProcessorError> {
+///         Ok(())
+///     }
+///
+///     fn create_instructions(&self, primary_signer: &Pubkey, _: Self::OnlineArgs, _: Self::RemainingArgs) -> Result<(Vec<&str>, Vec<Instruction>), TransactionProcessorError> {
+///         Ok(
+///             (
+///                 vec!["memo"],
+///                 vec![spl_memo::build_memo(self.message.as_bytes(), &[primary_signer])]
+///             )
+///         )
+///     }
+/// }
+///
+/// This can be used in both CLI or servers.
+/// This is only an advisable approach when you have some standardized transaction schemas,
+/// and you need multiple forms of transaction processing. Otherwise, this is all overkill.
 use anchor_client::solana_client::rpc_client::RpcClient;
 use serde_json::{Map, Value};
 use solana_sdk::bs58;
-use solana_sdk::hash::Hash;
 use solana_sdk::instruction::Instruction;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signer::Signer;
 use solana_sdk::transaction::Transaction;
-use thiserror::Error;
 
+pub use error::TransactionProcessorError;
+pub use interface_types::{ProcessedTransaction, Processing};
 
-// pub struct Memo {
-//     message: String,
-// }
-//
-// impl TransactionProcessor for Memo {
-//     type OnlineArgs = ();
-//     type RemainingArgs = ();
-//
-//     fn get_online_args(&self, _: &RpcClient) -> Result<Self::OnlineArgs, TransactionProcessorError> {
-//         Ok(())
-//     }
-//
-//     fn metadata(&self, primary_signer: &Pubkey, _: &Self::OnlineArgs, _: &Self::RemainingArgs) -> Map<String, Value> {
-//         let mut map = Map::new();
-//         map.insert("message".to_string(), Value::String(self.message.to_string()));
-//         map.insert("signer".to_string(), Value::String(primary_signer.to_string()));
-//         map
-//     }
-//
-//     fn name(&self, _: &Pubkey, _: &Self::OnlineArgs, _: &Self::RemainingArgs) -> String {
-//         format!("memo: {}", self.message)
-//     }
-//
-//     fn calc_remaining_args(&self, _: &Self::OnlineArgs, _: &Pubkey) -> Result<Self::RemainingArgs, TransactionProcessorError> {
-//         Ok(())
-//     }
-//
-//     fn create_instructions(&self, primary_signer: &Pubkey, _: Self::OnlineArgs, _: Self::RemainingArgs) -> Result<(Vec<&str>, Vec<Instruction>), TransactionProcessorError> {
-//         Ok(
-//             (
-//                 vec!["memo"],
-//                 vec![spl_memo::build_memo(self.message.as_bytes(), &[primary_signer])]
-//             )
-//         )
-//     }
-// }
-
-#[derive(Debug, Error)]
-pub enum TransactionProcessorError {
-    #[error("rpc client error: {0}")]
-    ClientError(solana_client::client_error::ClientError),
-    #[error("{0}")]
-    Other(Box<dyn std::error::Error>),
-}
 
 /// If you can calculate values instead of require the user pass them in,
 /// then do so in the constructor. If you need to pull cluster data first,
 /// then calculate those values in [calc_remaining_args].
 pub trait TransactionProcessor {
+    /// Anything you need to fetch online first before instantiating the transaction.
     type OnlineArgs;
+    /// Anything needed that can be further derived after fetching [OnlineArgs].
     type RemainingArgs;
 
-    fn get_online_args(&self, _: &RpcClient) -> Result<Self::OnlineArgs, TransactionProcessorError>;
+    /// Sometimes we do not have to pass in prerequisite data, and can much more reliably
+    /// acquire accurate values for such data by simply querying blockchain state.
+    /// This function is a place to do that.
+    #[allow(unused)]
+    fn get_online_args(&self, client: &RpcClient) -> Result<Self::OnlineArgs, TransactionProcessorError>;
 
     /// Given everything known about the transaction,
     /// save anything pertinent for user feedback here.
+    /// e.g. Sometimes an account is created during a transaction execution,
+    /// and the user needs to know the address of that new account.
+    /// This provides a simple [serde_json] based way to dump any arbitrary data
+    /// associated with the transaction.
     #[allow(unused)]
     fn metadata(
         &self,
@@ -76,8 +92,8 @@ pub trait TransactionProcessor {
         Map::new()
     }
 
-    /// After fetching online arguments, derive any remaining values
-    /// that you need to create instructions.
+    /// After fetching all necessary values to create the transaction,
+    /// output a name for the transaction.
     fn name(
         &self,
         primary_signer: &Pubkey,
@@ -93,7 +109,12 @@ pub trait TransactionProcessor {
         primary_signer: &Pubkey,
     ) -> Result<Self::RemainingArgs, TransactionProcessorError>;
 
-    /// Create a vec of instructions paired with names
+    /// Create a vec of instructions paired with names.
+    /// Creates a tuple of two vectors:
+    /// - [Vec<Instruction>] represents an ordered list of instructions
+    /// to add to the transaction.
+    /// - [Vec<&str>] represents the names for each instruction, where the corresponding
+    /// indices match across both this vec and the [Vec<Instruction>].
     fn create_instructions(
         &self,
         primary_signer: &Pubkey,
@@ -101,6 +122,8 @@ pub trait TransactionProcessor {
         remaining: Self::RemainingArgs,
     ) -> Result<(Vec<&str>, Vec<Instruction>), TransactionProcessorError>;
 
+    /// Runs the transaction processing, according to the given mode of processing.
+    /// This
     fn process(
         &self,
         mode: Processing<Self::OnlineArgs>,
@@ -144,6 +167,49 @@ pub trait TransactionProcessor {
                     name,
                     signature: signature.to_string(),
                     metadata,
+                })
+            }
+            Processing::Simulate(client, signer) => {
+                let primary_signer = signer.pubkey();
+                let online_args = self.get_online_args(&client)?;
+                let remaining_args = self.calc_remaining_args(
+                    &online_args,
+                    &primary_signer,
+                )?;
+                extra_signers.push(signer);
+                let name = self.name(
+                    &primary_signer,
+                    &online_args,
+                    &remaining_args,
+                );
+                let metadata = self.metadata(
+                    &primary_signer,
+                    &online_args,
+                    &remaining_args,
+                );
+                let (_, ixs) = self.create_instructions(
+                    &primary_signer,
+                    online_args,
+                    remaining_args,
+                )?;
+                let recent_blockhash = client.get_latest_blockhash()
+                    .map_err(|e| TransactionProcessorError::ClientError(e))?;
+                let tx = Transaction::new_signed_with_payer(
+                    &ixs,
+                    Some(&primary_signer), // payer
+                    extra_signers,
+                    recent_blockhash,
+                );
+                let response = client.simulate_transaction(&tx)
+                    .map_err(|e| TransactionProcessorError::ClientError(e))?;
+                let result = response.value;
+                let context = response.context;
+                Ok(ProcessedTransaction::Simulation {
+                    name,
+                    metadata,
+                    simulation_result: result,
+                    simulation_context: context,
+
                 })
             }
             Processing::Sign(client, signer) => {
@@ -347,72 +413,9 @@ pub trait TransactionProcessor {
     }
 }
 
+/// Base-58 encode an [Instruction] from the Solana SDK.
 fn serialize_ix(ix: &Instruction) -> String {
     bs58::encode(
         bincode::serialize(ix).expect("instruction failed to serialize")
     ).into_string()
-}
-
-/// Offline variants require passing in some [T] which would
-/// normally come from querying the cluster.
-pub enum Processing<T> {
-    /// Requires network traffic
-    Execute(RpcClient, Box<dyn Signer>),
-    Sign(RpcClient, Box<dyn Signer>),
-    Serialize(RpcClient, Pubkey), // client, signer
-    Instructions(RpcClient, Pubkey), // client, multisig_signer
-    /// Does not require any network traffic
-    OfflineSign(T, Box<dyn Signer>, Hash),
-    OfflineSerialize(T, Pubkey),
-    OfflineInstructions(T, Pubkey),
-}
-
-impl<T> Processing<T> {
-    /// Calculates the multisig signer given a multisig account and
-    /// the multisig program ID.
-    pub fn propose(
-        client: RpcClient,
-        program_id: &Pubkey,
-        multisig: &Pubkey
-    ) -> Self {
-        Processing::Instructions(
-            client,
-            Pubkey::find_program_address(&[multisig.as_ref()], program_id).0,
-        )
-    }
-
-    pub fn propose_offline(
-        online_args: T,
-        program_id: &Pubkey,
-        multisig: &Pubkey
-    ) -> Self {
-        Processing::OfflineInstructions(
-            online_args,
-            Pubkey::find_program_address(&[multisig.as_ref()], program_id).0,
-        )
-    }
-}
-
-pub enum ProcessedTransaction {
-    Execution {
-        signature: String,
-        name: String,
-        metadata: Map<String, Value>,
-    },
-    SignedSerialized {
-        transaction: String,
-        name: String,
-        metadata: Map<String, Value>,
-    },
-    UnsignedSerialized {
-        transaction: String,
-        name: String,
-        metadata: Map<String, Value>,
-    },
-    InstructionSet {
-        instructions: Vec<String>,
-        instruction_names: Vec<String>,
-        name: String,
-        metadata: Map<String, Value>,
-    },
 }
