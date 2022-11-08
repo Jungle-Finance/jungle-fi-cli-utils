@@ -1,8 +1,8 @@
 use anchor_client::anchor_lang::{AccountDeserialize, AccountSerialize};
-use anchor_client::solana_sdk::account::{Account, AccountSharedData};
 use solana_program::clock::Epoch;
 use solana_account_decoder::UiAccount;
 use std::fs::File;
+use anchor_cli::config::AccountEntry;
 use serde_json::json;
 use anyhow::Result;
 use solana_program::pubkey::Pubkey;
@@ -18,10 +18,12 @@ pub trait GeneratedAccount {
 
     fn generate(&self) -> Self::T;
 
+    /// Defaults to 1000 SOL
     fn lamports(&self) -> u64 {
         1_000_000_000_000
     }
 
+    /// Defaults to system program
     fn owner(&self) -> Pubkey {
         system_program::id()
     }
@@ -34,30 +36,31 @@ pub trait GeneratedAccount {
         0
     }
 
+    /// Relative paths are acceptable here.
     fn save_location(&self) -> String {
-        format!("{}.json", self.address().to_string())
+        format!("tests/accounts/{}.json", self.address().to_string())
+    }
+
+    /// Relative paths are acceptable here.
+    fn relative_path_from_test_toml(&self) -> String {
+        format!("../accounts/{}.json", self.address().to_string())
+    }
+
+    /// For consumption by a struct that can create `Test.toml`.
+    fn to_account_entry(&self) -> AccountEntry {
+        AccountEntry {
+            address: self.address().to_string(),
+            filename: self.relative_path_from_test_toml(),
+        }
     }
 
     fn arg(&self) -> Vec<String> {
         vec!["--account".to_string(), self.address().to_string(), self.save_location()]
     }
 
+    /// For code-generation, affords `import` of localnet accounts into tests.
     fn js_import(&self) -> String {
         js_test_import(&self.save_location())
-    }
-
-    // Can add this data type directly to a [TestValidatorGenesis] accounts to load.
-    fn account_shared_data(&self) -> (Pubkey, AccountSharedData) {
-        let data = self.generate();
-        let mut buf = vec![];
-        data.try_serialize(&mut buf).unwrap();
-        (self.address(), Account {
-            lamports: self.lamports(),
-            owner: self.owner(),
-            data: buf,
-            executable: self.executable(),
-            rent_epoch: self.rent_epoch(),
-        }.into())
     }
 
     fn write_to_validator_json_file(&self) -> Result<()> {
@@ -122,6 +125,9 @@ pub fn write_to_file(
     Ok(())
 }
 
+/// Takes a filepath to a JSON file, and produces a source code string
+/// that both imports the JSON as well as extracts the public key object.
+/// JS identifier for each pubkey is based off the JSON filename.
 pub fn js_test_import(location: &str) -> String {
     //let mut location = &mut location.clone();
     let location = if !location.ends_with(".json") {

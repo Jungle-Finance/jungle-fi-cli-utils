@@ -1,10 +1,13 @@
 use anchor_client::anchor_lang::{AccountDeserialize, AccountSerialize};
 use solana_program::pubkey::Pubkey;
 use anchor_client::solana_client::rpc_client::RpcClient;
-use solana_sdk::account::{Account, AccountSharedData, ReadableAccount};
+use solana_sdk::account::{Account, ReadableAccount};
 use crate::generate_account;
 
-/// Clone an account from a cluster, and optionally modify it.
+/// Allows modification of cloned account data in its deserialized form
+/// before being written to a JSON file. The usual `--clone` flag on
+/// `solana-test-validator` does not allow for anything like this.
+///
 /// Only works on account types that implement [anchor_lang::AccountSerialize]
 /// and [anchor_lang::AccountDeserialize].
 pub trait ClonedAccount {
@@ -36,20 +39,6 @@ pub trait ClonedAccount {
         let deserialized = Self::T::try_deserialize(
             &mut info.data.as_slice())?;
         Ok((info, self.modify(deserialized)))
-    }
-
-    // Can add this data type directly to a [TestValidatorGenesis] accounts to load.
-    fn account_shared_data(&self, client: &RpcClient) -> anyhow::Result<(Pubkey, AccountSharedData)> {
-        let (info, data) = self.fetch_and_modify_data(client)?;
-        let mut buf = vec![];
-        data.try_serialize(&mut buf).unwrap();
-        Ok((self.address(), Account {
-            lamports: info.lamports,
-            owner: info.owner,
-            data: buf,
-            executable: info.executable,
-            rent_epoch: info.rent_epoch,
-        }.into()))
     }
 
     fn write_to_validator_json_file(&self, client: &RpcClient) -> anyhow::Result<()> {

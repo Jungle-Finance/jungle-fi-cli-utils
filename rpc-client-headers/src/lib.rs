@@ -27,16 +27,7 @@ use {
     },
     tokio::time::sleep,
 };
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct GenesysGoUser{
-    pub id: u64,
-    pub public_key: String,
-    pub created_at: String,
-    pub updated_at: String,
-}
+use serde::Deserialize ;
 
 /// Supporting struct for the [impl RpcSender for HttpSenderWithHeaders] block below.
 #[derive(Deserialize, Debug)]
@@ -45,8 +36,8 @@ pub struct RpcErrorObject {
     pub message: String,
 }
 
-/// Copy of [solana_client::http_sender::HttpSender] modified
-/// to contain default HTTP request headers
+/// Nonblocking [`RpcSender`] over HTTP, with optional custom headers.
+/// Modified version of [solana_client::http_sender::HttpSender].
 pub struct HttpSenderWithHeaders {
     client: Arc<reqwest::Client>,
     url: String,
@@ -55,7 +46,6 @@ pub struct HttpSenderWithHeaders {
 }
 
 
-/// Nonblocking [`RpcSender`] over HTTP, with optional custom headers.
 impl HttpSenderWithHeaders {
     /// Create an HTTP RPC sender.
     ///
@@ -252,6 +242,7 @@ impl RpcSender for HttpSenderWithHeaders {
 /// Same tests as in the original [solana_client] crate.
 #[cfg(test)]
 mod tests {
+    use reqwest::header::HeaderValue;
     use super::*;
 
     #[tokio::test(flavor = "multi_thread")]
@@ -260,11 +251,27 @@ mod tests {
         let _ = http_sender
             .send(RpcRequest::GetVersion, Value::Null)
             .await;
+        // And again with headers
+        let mut headers = HeaderMap::new();
+        headers.insert("foo", HeaderValue::from_str("bar").unwrap());
+        let http_sender = HttpSenderWithHeaders::new(
+            "http://localhost:1234".to_string(), Some(headers));
+        let _ = http_sender
+            .send(RpcRequest::GetVersion, Value::Null)
+            .await;
     }
 
     #[tokio::test(flavor = "current_thread")]
     async fn http_sender_on_tokio_current_thread() {
         let http_sender = HttpSenderWithHeaders::new("http://localhost:1234".to_string(), None);
+        let _ = http_sender
+            .send(RpcRequest::GetVersion, Value::Null)
+            .await;
+        // And again with headers
+        let mut headers = HeaderMap::new();
+        headers.insert("foo", HeaderValue::from_str("bar").unwrap());
+        let http_sender = HttpSenderWithHeaders::new(
+            "http://localhost:1234".to_string(), Some(headers));
         let _ = http_sender
             .send(RpcRequest::GetVersion, Value::Null)
             .await;

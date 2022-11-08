@@ -13,6 +13,8 @@ mod wrapped_spl_types;
 mod generate_account;
 mod clone_account;
 pub mod anchor_test_log_workaround;
+pub mod test_toml;
+pub mod localnet_account;
 
 pub use generate_account::GeneratedAccount;
 pub use clone_account::ClonedAccount;
