@@ -6,46 +6,6 @@ mod interface_types;
 /// case of signing and sending, to more niche cases of printing instruction
 /// data to use as a multisig proposal.
 ///
-/// -- Example Usage
-///
-/// /// Simple memo transaction
-/// pub struct Memo {
-///     message: String,
-/// }
-///
-/// impl TransactionProcessor for Memo {
-///     type OnlineArgs = ();
-///     type RemainingArgs = ();
-///
-///     fn get_online_args(&self, _: &RpcClient) -> Result<Self::OnlineArgs, TransactionProcessorError> {
-///         Ok(())
-///     }
-///
-///     fn metadata(&self, primary_signer: &Pubkey, _: &Self::OnlineArgs, _: &Self::RemainingArgs) -> Map<String, Value> {
-///         let mut map = Map::new();
-///         map.insert("message".to_string(), Value::String(self.message.to_string()));
-///         map.insert("signer".to_string(), Value::String(primary_signer.to_string()));
-///         map
-///     }
-///
-///     fn name(&self, _: &Pubkey, _: &Self::OnlineArgs, _: &Self::RemainingArgs) -> String {
-///         format!("memo: {}", self.message)
-///     }
-///
-///     fn calc_remaining_args(&self, _: &Self::OnlineArgs, _: &Pubkey) -> Result<Self::RemainingArgs, TransactionProcessorError> {
-///         Ok(())
-///     }
-///
-///     fn create_instructions(&self, primary_signer: &Pubkey, _: Self::OnlineArgs, _: Self::RemainingArgs) -> Result<(Vec<&str>, Vec<Instruction>), TransactionProcessorError> {
-///         Ok(
-///             (
-///                 vec!["memo"],
-///                 vec![spl_memo::build_memo(self.message.as_bytes(), &[primary_signer])]
-///             )
-///         )
-///     }
-/// }
-///
 /// This can be used in both CLI or servers.
 /// This is only an advisable approach when you have some standardized transaction schemas,
 /// and you need multiple forms of transaction processing. Otherwise, this is all overkill.
@@ -59,6 +19,7 @@ use solana_sdk::transaction::Transaction;
 
 pub use error::TransactionProcessorError;
 pub use interface_types::{ProcessedTransaction, Processing};
+use crate::error::maybe_print_preflight_simulation_logs;
 
 
 /// If you can calculate values instead of require the user pass them in,
@@ -162,7 +123,10 @@ pub trait TransactionProcessor {
                     recent_blockhash,
                 );
                 let signature = client.send_transaction(&tx)
-                    .map_err(|e| TransactionProcessorError::ClientError(e))?;
+                    .map_err(|e| {
+                        let e = maybe_print_preflight_simulation_logs(e);
+                        TransactionProcessorError::ClientError(e)
+                    })?;
                 Ok(ProcessedTransaction::Execution {
                     name,
                     signature: signature.to_string(),
@@ -201,7 +165,10 @@ pub trait TransactionProcessor {
                     recent_blockhash,
                 );
                 let response = client.simulate_transaction(&tx)
-                    .map_err(|e| TransactionProcessorError::ClientError(e))?;
+                    .map_err(|e| {
+                        let e = maybe_print_preflight_simulation_logs(e);
+                        TransactionProcessorError::ClientError(e)
+                    })?;
                 let result = response.value;
                 let context = response.context;
                 Ok(ProcessedTransaction::Simulation {
@@ -418,4 +385,223 @@ fn serialize_ix(ix: &Instruction) -> String {
     bs58::encode(
         bincode::serialize(ix).expect("instruction failed to serialize")
     ).into_string()
+}
+
+
+#[cfg(test)]
+mod tests {
+    use solana_sdk::hash::Hash;
+    use solana_sdk::signature::Keypair;
+    use super::*;
+
+    /// Simple memo transaction
+    pub struct Memo {
+        message: String,
+    }
+
+    impl TransactionProcessor for Memo {
+        type OnlineArgs = ();
+        type RemainingArgs = ();
+
+        fn get_online_args(&self, _: &RpcClient) -> Result<Self::OnlineArgs, TransactionProcessorError> {
+            Ok(())
+        }
+
+        fn metadata(&self, primary_signer: &Pubkey, _: &Self::OnlineArgs, _: &Self::RemainingArgs) -> Map<String, Value> {
+            let mut map = Map::new();
+            map.insert("message".to_string(), Value::String(self.message.to_string()));
+            map.insert("signer".to_string(), Value::String(primary_signer.to_string()));
+            map
+        }
+
+        fn name(&self, _: &Pubkey, _: &Self::OnlineArgs, _: &Self::RemainingArgs) -> String {
+            format!("memo: {}", self.message)
+        }
+
+        fn calc_remaining_args(&self, _: &Self::OnlineArgs, _: &Pubkey) -> Result<Self::RemainingArgs, TransactionProcessorError> {
+            Ok(())
+        }
+
+        fn create_instructions(&self, primary_signer: &Pubkey, _: Self::OnlineArgs, _: Self::RemainingArgs) -> Result<(Vec<&str>, Vec<Instruction>), TransactionProcessorError> {
+            Ok(
+                (
+                    vec!["memo"],
+                    vec![spl_memo::build_memo(self.message.as_bytes(), &[primary_signer])]
+                )
+            )
+        }
+    }
+
+    #[test]
+    fn execution() {
+        let memo_tx = Memo {
+            message: "Foobar".to_string()
+        };
+
+        let signer = Keypair::new();
+        let client = RpcClient::new_mock("succeeds");
+        let response = memo_tx.process(
+            Processing::Execute(client, Box::new(signer)),
+            &mut vec![],
+        ).unwrap();
+        if let ProcessedTransaction::Execution {
+            name,
+            ..
+        } = response {
+            assert_eq!(name, "memo: Foobar".to_string());
+        } else {
+            panic!("wrong processing");
+        }
+    }
+
+    #[test]
+    fn simulation() {
+        let memo_tx = Memo {
+            message: "Foobar".to_string()
+        };
+
+        let signer = Keypair::new();
+        let client = RpcClient::new_mock("succeeds");
+        let response = memo_tx.process(
+            Processing::Simulate(client, Box::new(signer)),
+            &mut vec![],
+        ).unwrap();
+        if let ProcessedTransaction::Simulation {
+            name,
+            ..
+        } = response {
+            assert_eq!(name, "memo: Foobar".to_string());
+        } else {
+            panic!("wrong processing");
+        }
+    }
+
+    #[test]
+    fn sign() {
+        let memo_tx = Memo {
+            message: "Foobar".to_string()
+        };
+
+        let signer = Keypair::new();
+        let client = RpcClient::new_mock("succeeds");
+        let response = memo_tx.process(
+            Processing::Sign(client, Box::new(signer)),
+            &mut vec![],
+        ).unwrap();
+        if let ProcessedTransaction::SignedSerialized {
+            name,
+            ..
+        } = response {
+            assert_eq!(name, "memo: Foobar".to_string());
+        } else {
+            panic!("wrong processing");
+        }
+    }
+
+    #[test]
+    fn serialize() {
+        let memo_tx = Memo {
+            message: "Foobar".to_string()
+        };
+
+        let signer = Keypair::new();
+        let client = RpcClient::new_mock("succeeds");
+        let response = memo_tx.process(
+            Processing::Serialize(client, signer.pubkey()),
+            &mut vec![],
+        ).unwrap();
+        if let ProcessedTransaction::UnsignedSerialized {
+            name,
+            ..
+        } = response {
+            assert_eq!(name, "memo: Foobar".to_string());
+        } else {
+            panic!("wrong processing");
+        }
+    }
+
+    #[test]
+    fn instructions() {
+        let memo_tx = Memo {
+            message: "Foobar".to_string()
+        };
+
+        let signer = Keypair::new();
+        let client = RpcClient::new_mock("succeeds");
+        let response = memo_tx.process(
+            Processing::Instructions(client, signer.pubkey()),
+            &mut vec![],
+        ).unwrap();
+        if let ProcessedTransaction::InstructionSet {
+            name,
+            ..
+        } = response {
+            assert_eq!(name, "memo: Foobar".to_string());
+        } else {
+            panic!("wrong processing");
+        }
+    }
+
+    #[test]
+    fn offline_sign() {
+        let memo_tx = Memo {
+            message: "Foobar".to_string()
+        };
+
+        let signer = Keypair::new();
+        let response = memo_tx.process(
+            Processing::OfflineSign((), Box::new(signer), Hash::new_unique()),
+            &mut vec![],
+        ).unwrap();
+        if let ProcessedTransaction::SignedSerialized {
+            name,
+            ..
+        } = response {
+            assert_eq!(name, "memo: Foobar".to_string());
+        } else {
+            panic!("wrong processing");
+        }
+    }
+
+    #[test]
+    fn offline_serialize() {
+        let memo_tx = Memo {
+            message: "Foobar".to_string()
+        };
+
+        let signer = Keypair::new();
+        let response = memo_tx.process(
+            Processing::OfflineSerialize((), signer.pubkey()),
+            &mut vec![],
+        ).unwrap();
+        if let ProcessedTransaction::UnsignedSerialized {
+            name,
+            ..
+        } = response {
+            assert_eq!(name, "memo: Foobar".to_string());
+        } else {
+            panic!("wrong processing");
+        }
+    }
+
+    #[test]
+    fn offline_instructions() {
+        let memo_tx = Memo {
+            message: "Foobar".to_string()
+        };
+
+        let signer = Keypair::new();
+        let response = memo_tx.process(
+            Processing::OfflineInstructions((), signer.pubkey()),
+            &mut vec![],
+        ).unwrap();
+        if let ProcessedTransaction::InstructionSet {
+            name,
+            ..
+        } = response {
+            assert_eq!(name, "memo: Foobar".to_string());
+        } else {
+            panic!("wrong processing");
+        }
+    }
 }

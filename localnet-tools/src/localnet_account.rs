@@ -9,6 +9,8 @@ use solana_account_decoder::{UiAccount, UiAccountData, UiAccountEncoding};
 use solana_sdk::bs58;
 use crate::generate_account;
 
+pub const THOUSAND_SOL: u64 = 1_000_000_000_000;
+
 /// Builds JSON files consumable by `solana-test-validator`. Also handles other code-gen,
 /// such as JS imports for test files, and inclusion of pre-loaded accounts in `Test.toml`.
 #[derive(Debug, Clone, Default)]
@@ -32,7 +34,7 @@ impl LocalnetAccount {
         account_data.try_serialize(&mut serialized).unwrap();
         Self {
             address,
-            lamports: 1_000_000_000_000,
+            lamports: THOUSAND_SOL,
             name,
             account_data: serialized,
             owner: system_program::ID,

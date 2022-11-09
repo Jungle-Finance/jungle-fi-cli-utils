@@ -6,5 +6,5 @@ members = [
     "genesys_go_rpc_auth",
     "localnet-tools",
     "client-tx-processor",
-    "threadsafe-signer"
+    "threadsafe-signer",
 ]

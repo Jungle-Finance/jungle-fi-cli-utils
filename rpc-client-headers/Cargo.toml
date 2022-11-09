@@ -16,3 +16,11 @@ tokio = "1.14.1"
 solana-sdk = "1.10.29"
 solana-client = "1.10.29"
 solana-version = "1.10.29"
+
+[dev-dependencies]
+jsonrpc-core = "18.0.0"
+solana-client = "1.10.29"
+jsonrpc-http-server = "18.0.0"
+crossbeam-channel = "0.5"
+futures = "0.3"
+futures-util = "0.3.21"

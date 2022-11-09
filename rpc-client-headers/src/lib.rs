@@ -242,7 +242,16 @@ impl RpcSender for HttpSenderWithHeaders {
 /// Same tests as in the original [solana_client] crate.
 #[cfg(test)]
 mod tests {
+    use std::thread;
     use reqwest::header::HeaderValue;
+    use crossbeam_channel::unbounded;
+    use solana_client::rpc_client::RpcClient;
+    use jsonrpc_core::{Error, IoHandler, Params};
+    use jsonrpc_http_server::{AccessControlAllowOrigin, DomainsValidation, RequestMiddleware, RequestMiddlewareAction, ServerBuilder};
+    use serde_json::Number;
+    use futures_util::future;
+    use jsonrpc_http_server::hyper::{Body, Request};
+    use solana_client::client_error::ClientError;
     use super::*;
 
     #[tokio::test(flavor = "multi_thread")]
@@ -275,5 +284,97 @@ mod tests {
         let _ = http_sender
             .send(RpcRequest::GetVersion, Value::Null)
             .await;
+    }
+
+    struct CheckHeaderMiddleware;
+
+    impl RequestMiddleware for CheckHeaderMiddleware {
+        fn on_request(&self, request: Request<Body>) -> RequestMiddlewareAction {
+            assert_eq!(request.headers().get("foo"), Some(&HeaderValue::from_str("bar").unwrap()));
+            RequestMiddlewareAction::Proceed {
+                should_continue_on_invalid_cors: false,
+                request
+            }
+        }
+    }
+
+    #[test]
+    fn test_send() {
+        _test_send();
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    #[should_panic(expected = "can call blocking only when running on the multi-threaded runtime")]
+    async fn test_send_async_current_thread() {
+        _test_send();
+    }
+
+    #[tokio::test(flavor = "multi_thread")]
+    async fn test_send_async_multi_thread() {
+        _test_send();
+    }
+
+    fn _test_send() {
+        let (sender, receiver) = unbounded();
+        thread::spawn(move || {
+            let rpc_addr = "0.0.0.0:0".parse().unwrap();
+            let mut io = IoHandler::default();
+            // Successful request
+            io.add_method("getBalance", |_params: Params| {
+                future::ok(Value::Number(Number::from(50)))
+            });
+            // Failed request
+            io.add_method("getRecentBlockhash", |params: Params| {
+                if params != Params::None {
+                    future::err(Error::invalid_request())
+                } else {
+                    future::ok(Value::String(
+                        "deadbeefXjn8o3yroDHxUtKsZZgoy4GPkPPXfouKNHhx".to_string(),
+                    ))
+                }
+            });
+
+            let server = ServerBuilder::new(io)
+                .threads(1)
+                .cors(DomainsValidation::AllowOnly(vec![
+                    AccessControlAllowOrigin::Any,
+                ]))
+                .request_middleware(CheckHeaderMiddleware)
+                .start_http(&rpc_addr)
+                .expect("Unable to start RPC server");
+            sender.send(*server.address()).unwrap();
+            server.wait();
+        });
+
+        let rpc_addr = receiver.recv().unwrap();
+        let rpc_addr = format!("http://{}", rpc_addr);
+
+        let mut default_headers = HeaderMap::new();
+        default_headers.insert("foo", HeaderValue::from_str("bar").unwrap());
+        let sender = HttpSenderWithHeaders::new(
+            rpc_addr,
+            Some(default_headers)
+        );
+        let rpc_client = RpcClient::new_sender(sender, Default::default());
+
+        let balance: u64 = rpc_client
+            .send(
+                RpcRequest::GetBalance,
+                json!(["deadbeefXjn8o3yroDHxUtKsZZgoy4GPkPPXfouKNHhx"]),
+            )
+            .unwrap();
+        assert_eq!(balance, 50);
+
+        #[allow(deprecated)]
+            let blockhash: String = rpc_client
+            .send(RpcRequest::GetRecentBlockhash, Value::Null)
+            .unwrap();
+        assert_eq!(blockhash, "deadbeefXjn8o3yroDHxUtKsZZgoy4GPkPPXfouKNHhx");
+
+        // Send erroneous parameter
+        #[allow(deprecated)]
+            let blockhash: Result<String, ClientError> =
+            rpc_client.send(RpcRequest::GetRecentBlockhash, json!(["parameter"]));
+        assert!(blockhash.is_err());
     }
 }

@@ -97,7 +97,8 @@ fn parse_signer_source<S: AsRef<str>>(source: S) -> Result<SignerSource, SignerS
     }
 }
 
-/// Switches over only the allowed variants if what we need is a keypair
+/// Switches over only the allowed variants if what we need is a keypair,
+/// including: `file`, `prompt`, `stdin`.
 pub fn keypair_from_path(keypair_path: &str) -> anyhow::Result<Box<Keypair>> {
     let SignerSource {
         kind,

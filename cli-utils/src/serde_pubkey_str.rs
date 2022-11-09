@@ -5,11 +5,11 @@
 //!
 //! ```
 //! use solana_program::pubkey::Pubkey;
-//! use jungle_fi_cli_utils::input_parsing::pubkey_serde;
+//! use jungle_fi_cli_utils::serde_pubkey_str;
 //!
 //! #[derive(serde::Serialize, serde::Deserialize)]
 //!  pub struct ImportantThing {
-//!     #[serde(with = "pubkey_serde")]
+//!     #[serde(with = "serde_pubkey_str")]
 //!     pub address: Pubkey,  // Will convert to/from strings.
 //! }
 //! ```
