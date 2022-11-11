@@ -9,3 +9,6 @@ filename = "mint.json"
 [[test.validator.account]]
 address = "CiDwVBFgWV9E5MvXWoLgnEgn2hK7rJikbvfWavzAQz3"
 filename = "test_user_token_act.json"
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 ./tests/suite-1/test.ts"

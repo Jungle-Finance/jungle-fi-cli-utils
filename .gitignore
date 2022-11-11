@@ -2,3 +2,5 @@
 **/Cargo.lock
 .idea
 **/target
+**/node_modules
+**/.anchor

@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-jungle-fi-localnet-tools = { path = "../../localnet-tools" }
+jungle-fi-localnet-tools = { path = "../../../../localnet-tools" }
 solana-sdk = "^1.10.29"
 anyhow = "1.0.66"

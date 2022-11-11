@@ -3,44 +3,14 @@
 use std::io::Write;
 use anchor_client::anchor_lang;
 use solana_program::pubkey::Pubkey;
-use solana_program::clock::Epoch;
-use solana_account_decoder::{UiAccount, UiAccountData, UiAccountEncoding};
 use anchor_client::anchor_lang::prelude::System;
 use anchor_client::anchor_lang::Id;
-use solana_sdk::bs58;
 
 mod wrapped_spl_types;
-mod generate_account;
-mod clone_account;
-pub mod anchor_test_log_workaround;
 pub mod test_toml;
 pub mod localnet_account;
 
-pub use generate_account::GeneratedAccount;
-pub use clone_account::ClonedAccount;
 pub use wrapped_spl_types::{arbitrary_mint_account, MintWrapper, arbitrary_token_account, TokenAccountWrapper};
-
-/// Creates account info struct of the correct type
-/// expected by `solana-test-validator --account`.
-/// Handles some tricky structs for the data field.
-pub fn ui_account(
-    lamports: u64,
-    data: &[u8],
-    owner: &Pubkey,
-    executable: bool,
-    rent_epoch: Epoch,
-) -> UiAccount {
-    UiAccount {
-        lamports,
-        data: UiAccountData::Binary(
-            bs58::encode(data).into_string(),
-            UiAccountEncoding::Base58
-        ),
-        owner: owner.to_string(),
-        executable,
-        rent_epoch,
-    }
-}
 
 /// Use this struct as type T for any [GeneratedAccount] or [ClonedAccount]
 /// owned by `SystemProgram` (e.g. typical user accounts).

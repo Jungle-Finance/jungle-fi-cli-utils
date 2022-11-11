@@ -6,7 +6,7 @@ use crate::localnet_account::LocalnetAccount;
 
 /// Standard Anchor test command. The [TestTomlGenerator.test_file_glob] is appended
 /// to this and added to the `[script]` section of the `Test.toml` file under the name `"test"`.
-const TEST_CMD_PREFIX: &str = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 ";
+const TEST_CMD_PREFIX: &str = "yarn run ts-mocha -p ./tsconfig.json -t 1000000";
 
 /// Beginning of JS file, to construct `anchor.web3.PublicKey` instances.
 const JS_ANCHOR_IMPORT: &str = "import * as anchor from \"@project-serum/anchor\";\n";
@@ -35,8 +35,16 @@ pub struct TestTomlGenerator {
 
 impl TestTomlGenerator {
     pub fn build(&self) -> anyhow::Result<()> {
+        self.write_accounts()?;
         self.write_js_import_file()?;
         self.write_toml()?;
+        Ok(())
+    }
+
+    pub fn write_accounts(&self) -> anyhow::Result<()> {
+        for act in &self.accounts {
+            act.write_to_validator_json_file(&self.save_directory)?;
+        }
         Ok(())
     }
 

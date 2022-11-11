@@ -33,7 +33,8 @@ fn accounts() -> Vec<LocalnetAccount> {
 fn main() -> anyhow::Result<()> {
 
     let toml = TestTomlGenerator {
-        save_directory: "tests/suite-1".to_string(),
+        save_directory: "suite-1".to_string(),
+        test_file_glob: Some("./tests/suite-1/test.ts".to_string()),
         accounts: accounts(),
         ..Default::default()
     };
