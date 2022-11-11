@@ -1,0 +1,14 @@
+[[test.validator.account]]
+address = "GcdayuLaLyrdmUu324nahyv33G5poQdLUEZ1nEytDeP"
+filename = "test_user.json"
+
+[[test.validator.account]]
+address = "LX3EUdRUBUa3TbsYXLEUdj9J3prXkWXvLYSWyYyc2Jj"
+filename = "mint.json"
+
+[[test.validator.account]]
+address = "QRSsyMWN1yHT9ir42bgNZUNZ4PdEhcSWCrL2AryKpy5"
+filename = "test_user_token_act.json"
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 ./tests/suite-2/test.ts"

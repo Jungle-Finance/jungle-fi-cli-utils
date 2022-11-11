@@ -24,6 +24,7 @@ pub struct TestTomlGenerator {
     /// Any accounts to pre-load to the test validator.
     pub accounts: Vec<LocalnetAccount>,
     /// Any programs to pre-load to the test validator.
+    /// Tuples are of (Address, ProgramPath).
     pub programs: Vec<(String, String)>,
     /// Any settings for the test validator.
     pub validator_settings: Option<_Validator>,
@@ -31,6 +32,7 @@ pub struct TestTomlGenerator {
     pub extends: Vec<String>,
     /// To ensure that the test validator has enough time to start up before tests begin.
     pub startup_wait: Option<i32>,
+    pub shutdown_wait: Option<i32>,
 }
 
 impl TestTomlGenerator {
@@ -102,6 +104,7 @@ impl TestTomlGenerator {
             Some(genesis_programs)
         };
         test_validator.startup_wait = self.startup_wait;
+        test_validator.shutdown_wait = self.shutdown_wait;
         test_validator.genesis = genesis_programs;
         // Then add any extensions to other .toml files
         let extends = if self.extends.is_empty() {

@@ -10,6 +10,8 @@ mod wrapped_spl_types;
 pub mod test_toml;
 pub mod localnet_account;
 
+pub use localnet_account::LocalnetAccount;
+pub use test_toml::TestTomlGenerator;
 pub use wrapped_spl_types::{arbitrary_mint_account, MintWrapper, arbitrary_token_account, TokenAccountWrapper};
 
 /// Use this struct as type T for any [GeneratedAccount] or [ClonedAccount]
