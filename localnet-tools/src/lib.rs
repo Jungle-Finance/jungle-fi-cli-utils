@@ -9,6 +9,7 @@ use anchor_client::anchor_lang::Id;
 mod wrapped_spl_types;
 pub mod test_toml;
 pub mod localnet_account;
+pub mod trait_based;
 
 pub use localnet_account::LocalnetAccount;
 pub use test_toml::TestTomlGenerator;
