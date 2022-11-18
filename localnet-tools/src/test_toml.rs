@@ -1,6 +1,7 @@
 use std::fs;
 use anyhow::anyhow;
 use anchor_cli::config::{_TestToml, _TestValidator, _Validator, AccountEntry, GenesisEntry, ScriptsConfig};
+use serde_json::json;
 use crate::localnet_account::LocalnetAccount;
 
 
@@ -68,6 +69,8 @@ impl TestTomlGenerator {
     }
 
     pub fn write_toml(&self) -> anyhow::Result<()> {
+        // This is where we inject our accounts and programs.
+        let mut test_validator = _TestValidator::default();
         // [[test.validator.account]] blocks
         let account_entries: Vec<AccountEntry> = self.accounts
             .iter()
@@ -78,19 +81,11 @@ impl TestTomlGenerator {
         } else {
             Some(account_entries)
         };
-        // [test] settings
-        let validator = if let Some(settings) = self.validator_settings.clone() {
-            _Validator {
-                account: account_entries, ..settings
-            }
-        } else {
-            _Validator {
-                account: account_entries, ..Default::default()
-            }
+        let test_validator_accounts = _Validator {
+            account: account_entries, ..Default::default()
         };
+        test_validator.validator = Some(test_validator_accounts);
         // Then add pre-loaded programs
-        let mut test_validator = _TestValidator::default();
-        test_validator.validator = Some(validator);
         let genesis_programs: Vec<GenesisEntry> = self.programs
             .iter()
             .map(|(addr, path)| GenesisEntry {
@@ -103,9 +98,9 @@ impl TestTomlGenerator {
         } else {
             Some(genesis_programs)
         };
+        test_validator.genesis = genesis_programs;
         test_validator.startup_wait = self.startup_wait;
         test_validator.shutdown_wait = self.shutdown_wait;
-        test_validator.genesis = genesis_programs;
         // Then add any extensions to other .toml files
         let extends = if self.extends.is_empty() {
             None
@@ -127,7 +122,18 @@ impl TestTomlGenerator {
             test: Some(test_validator),
             scripts,
         };
-        let toml_str_output = toml::to_string(&test_toml).unwrap();
+        let mut toml_str_output = toml::to_string(&test_toml).unwrap();
+        // Possible [test.validator] settings need to be added this way
+        // due to a quirk in [toml] crate's serialization and the [_TestToml] object.
+        if let Some(settings) = self.validator_settings.clone() {
+            let val_settings = json!({
+                "test": {
+                    "validator": serde_json::to_value(&settings).unwrap(),
+                }
+            });
+            let val_settings = toml::to_string(&val_settings).unwrap();
+            toml_str_output = toml_str_output + "\n" + &val_settings;
+        }
         let save_to = self.save_directory.as_str().to_owned() + "/Test.toml";
         fs::write(&save_to, toml_str_output)
             .map_err(|e| anyhow!("Error writing to {}: {:?}", save_to, e))?;
