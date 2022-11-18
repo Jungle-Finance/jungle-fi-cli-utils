@@ -13,6 +13,9 @@ edition = "2021"
 chrono = "0.4"
 clap = { version = "3.1.5", features = ["cargo"] }
 rpassword = "6.0"
+# These version numbers needed to be changed.
+# This entire crate can be deleted from the repo in favor of the official crate,
+# as soon as Anchor upgrades to using Solana 1.11+.
 solana-perf = "1.10.29"
 solana-remote-wallet = "1.10.29"
 solana-sdk = "1.10.29"

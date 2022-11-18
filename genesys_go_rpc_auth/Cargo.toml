@@ -1,5 +1,5 @@
 [package]
-name = "solana-genesys_go_rpc_auth"
+name = "genesys-go-rpc-auth"
 version = "0.1.0"
 edition = "2021"
 

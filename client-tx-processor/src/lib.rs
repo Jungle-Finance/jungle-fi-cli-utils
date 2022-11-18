@@ -26,9 +26,10 @@ use crate::error::maybe_print_preflight_simulation_logs;
 /// then do so in the constructor. If you need to pull cluster data first,
 /// then calculate those values in [calc_remaining_args].
 pub trait TransactionProcessor {
-    /// Anything you need to fetch online first before instantiating the transaction.
+    /// Data to fetch online before instantiating the transaction. You
+    /// must describe how to fetch this data using [TransactionProcessor::get_online_args].
     type OnlineArgs;
-    /// Anything needed that can be further derived after fetching [OnlineArgs].
+    /// Data that is derivable only after fetching [OnlineArgs].
     type RemainingArgs;
 
     /// Sometimes we do not have to pass in prerequisite data, and can much more reliably
