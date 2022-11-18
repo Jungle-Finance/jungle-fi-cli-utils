@@ -159,5 +159,5 @@ pub fn js_test_import(location: &str) -> String {
     let name = name.to_string().to_camel_case();
     // Output an import statement
     // and its subsequent extraction of the Typescript `PublicKey` object.
-    format!("import * as {}Json from \"../{}\";\nexport const {} = new anchor.web3.PublicKey({}Json.pubkey);", &name, &location, &name, &name)
+    format!("import * as {}Json from \"./{}\";\nexport const {} = new anchor.web3.PublicKey({}Json.pubkey);", &name, &location, &name, &name)
 }
