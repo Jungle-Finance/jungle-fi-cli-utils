@@ -16,9 +16,9 @@ use solana_program::program_option::COption;
 /// preventing it from being useful in a number of use-cases.
 /// [MintWrapper] solves this by re-implementing the relevant Anchor traits,
 /// delegating implementation to the `anchor_spl` type where possible.
-pub struct MintWrapper(anchor_spl::token::Mint);
+pub struct SplMintAccount(anchor_spl::token::Mint);
 
-impl MintWrapper {
+impl SplMintAccount {
     pub const LEN: usize = spl_token::state::Mint::LEN;
 
     /// Preferred factory function to convert into this data type.
@@ -28,22 +28,22 @@ impl MintWrapper {
 }
 
 /// Anchor uses this trait to enforce proper program ownership during account deserialization.
-impl Owner for MintWrapper {
+impl Owner for SplMintAccount {
     fn owner() -> Pubkey {
         anchor_spl::token::Mint::owner()
     }
 }
 
-impl AccountDeserialize for MintWrapper {
+impl AccountDeserialize for SplMintAccount {
     fn try_deserialize_unchecked(buf: &mut &[u8]) -> anchor_client::anchor_lang::Result<Self> {
         let mint = anchor_spl::token::Mint::try_deserialize_unchecked(buf)?;
-        Ok(MintWrapper(mint))
+        Ok(SplMintAccount(mint))
     }
 }
 
 /// This is the primary reason this entire codebase exists, otherwise we could simply
 /// use the [anchor-spl] crate.
-impl AccountSerialize for MintWrapper {
+impl AccountSerialize for SplMintAccount {
     fn try_serialize<W: Write>(&self, _writer: &mut W) -> anchor_client::anchor_lang::Result<()> {
         // these are the only four lines that matter
         let mint = &self.0;
@@ -55,7 +55,7 @@ impl AccountSerialize for MintWrapper {
 }
 
 /// Unpacks the wrapper class into its wrapped type.
-impl Deref for MintWrapper {
+impl Deref for SplMintAccount {
     type Target = spl_token::state::Mint;
 
     fn deref(&self) -> &Self::Target {
@@ -67,9 +67,9 @@ impl Deref for MintWrapper {
 /// preventing it from being useful in a number of use-cases.
 /// [TokenAccountWrapper] solves this by re-implementing the relevant Anchor traits,
 /// delegating implementation to the `anchor_spl` type where possible.
-pub struct TokenAccountWrapper(anchor_spl::token::TokenAccount);
+pub struct SplTokenAccount(anchor_spl::token::TokenAccount);
 
-impl TokenAccountWrapper {
+impl SplTokenAccount {
     pub const LEN: usize = spl_token::state::Account::LEN;
 
     /// Preferred factory function to convert into this data type.
@@ -79,22 +79,22 @@ impl TokenAccountWrapper {
 }
 
 /// Anchor uses this trait to enforce proper program ownership during account deserialization.
-impl Owner for TokenAccountWrapper {
+impl Owner for SplTokenAccount {
     fn owner() -> Pubkey {
         anchor_spl::token::TokenAccount::owner()
     }
 }
 
-impl AccountDeserialize for TokenAccountWrapper {
+impl AccountDeserialize for SplTokenAccount {
     fn try_deserialize_unchecked(buf: &mut &[u8]) -> anchor_client::anchor_lang::Result<Self> {
         let token_act = anchor_spl::token::TokenAccount::try_deserialize_unchecked(buf)?;
-        Ok(TokenAccountWrapper(token_act))
+        Ok(SplTokenAccount(token_act))
     }
 }
 
 /// This is again the primary reason this entire codebase exists, otherwise we could simply
 /// use the [anchor-spl] crate.
-impl AccountSerialize for TokenAccountWrapper {
+impl AccountSerialize for SplTokenAccount {
     fn try_serialize<W: Write>(&self, _writer: &mut W) -> anchor_client::anchor_lang::Result<()> {
         // these are the only four lines that matter
         let token_account = &self.0;
@@ -106,7 +106,7 @@ impl AccountSerialize for TokenAccountWrapper {
 }
 
 /// Unpacks the wrapper class into its wrapped type.
-impl Deref for TokenAccountWrapper {
+impl Deref for SplTokenAccount {
     type Target = spl_token::state::Account;
 
     fn deref(&self) -> &Self::Target {
@@ -116,7 +116,7 @@ impl Deref for TokenAccountWrapper {
 
 /// Convenience function, basically a constructor with some opinionated defaults.
 /// See source code below for which parameters are chosen for the user.
-pub fn arbitrary_mint_account(
+pub fn spl_mint_account(
     authority: &Pubkey,
     supply: u64,
     decimals: u8,
@@ -138,7 +138,7 @@ pub fn arbitrary_mint_account(
 
 /// Convenience function, basically a constructor with some opinionated defaults.
 /// See source code below for which parameters are chosen for the user.
-pub fn arbitrary_token_account(
+pub fn spl_token_account(
     mint: &Pubkey,
     owner: &Pubkey,
     amount: u64,

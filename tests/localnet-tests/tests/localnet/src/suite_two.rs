@@ -1,7 +1,7 @@
 use jungle_fi_localnet_tools::localnet_account::LocalnetAccount;
 use solana_sdk::pubkey::Pubkey;
-use jungle_fi_localnet_tools::{arbitrary_mint_account, arbitrary_token_account, SystemAccount};
-use jungle_fi_localnet_tools::test_toml::TestTomlGenerator;
+use jungle_fi_localnet_tools::{spl_mint_account, spl_token_account, SystemAccount};
+use jungle_fi_localnet_tools::test_toml_generator::TestTomlGenerator;
 
 pub fn suite_2() -> TestTomlGenerator {
     TestTomlGenerator {
@@ -21,12 +21,12 @@ pub fn accounts() -> Vec<LocalnetAccount> {
     let test_mint = LocalnetAccount::new(
         Pubkey::new_unique(),
         "mint.json".to_string(),
-        arbitrary_mint_account(&test_user.address, 0, 9),
+        spl_mint_account(&test_user.address, 0, 9),
     );
     let test_token_account = LocalnetAccount::new(
         Pubkey::new_unique(),
         "test_user_token_act.json".to_string(),
-        arbitrary_token_account(
+        spl_token_account(
             &test_mint.address,
             &test_user.address,
             0

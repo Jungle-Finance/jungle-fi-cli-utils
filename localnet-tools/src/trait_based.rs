@@ -3,7 +3,7 @@ use anchor_client::solana_client::rpc_client::RpcClient;
 use anchor_client::solana_sdk::account::Account;
 use solana_program::clock::Epoch;
 use anyhow::Result;
-use solana_program::pubkey::{Pubkey};
+use solana_program::pubkey::Pubkey;
 use solana_program::system_program;
 use crate::localnet_account::THOUSAND_SOL;
 use crate::LocalnetAccount;

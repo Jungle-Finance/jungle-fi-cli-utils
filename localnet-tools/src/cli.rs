@@ -1,0 +1,59 @@
+use anchor_cli::config::TestConfig;
+use anyhow::anyhow;
+use clap::Parser;
+use crate::test_validator::localnet_from_test_config;
+use crate::TestTomlGenerator;
+
+#[derive(Debug, Parser)]
+pub enum Subcommand {
+    Build,
+    FromTestConfig {
+        cfg: String,
+        flags: Vec<String>,
+    },
+    // TODO Dump { address, url },
+}
+
+#[derive(Debug, Parser)]
+pub struct SolanaLocalnetCli {
+    #[clap(subcommand)]
+    command: Option<Subcommand>,
+}
+
+impl SolanaLocalnetCli {
+    pub fn process(self, test_toml_generators: Vec<TestTomlGenerator>) -> anyhow::Result<()> {
+        if let Some(subcommand) = self.command {
+            match subcommand {
+                Subcommand::FromTestConfig { cfg, flags } => {
+                    let test_config = TestConfig::discover(&cfg)?;
+                    if let Some(test_config) = test_config {
+                        localnet_from_test_config(test_config, flags)?;
+                        return Ok(())
+                    }
+                    return Err(anyhow!(
+                        "Could not find {}, you might need to build the localnet first.", &cfg));
+                },
+                Subcommand::Build => {
+                    build_test_toml_files(test_toml_generators)?;
+                }
+            }
+        } else {
+            // Default to [Subcommand::Build],
+            build_test_toml_files(test_toml_generators)?;
+        }
+        Ok(())
+    }
+}
+
+pub fn build_test_toml_files(test_toml_generators: Vec<TestTomlGenerator>) -> anyhow::Result<()> {
+    println!("Building Test.toml and associated files");
+    test_toml_generators
+        .iter()
+        .for_each(|test_toml| {
+            println!("Building: {}/Test.toml", test_toml.save_directory);
+            test_toml.build().unwrap();
+        });
+    println!("Localnet configuration setup complete.");
+    Ok(())
+}
+

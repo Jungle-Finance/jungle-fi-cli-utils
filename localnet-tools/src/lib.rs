@@ -7,13 +7,16 @@ use anchor_client::anchor_lang::prelude::System;
 use anchor_client::anchor_lang::Id;
 
 mod wrapped_spl_types;
-pub mod test_toml;
+pub mod test_toml_generator;
 pub mod localnet_account;
 pub mod trait_based;
+pub mod idl;
+pub mod test_validator;
+pub mod cli;
 
 pub use localnet_account::LocalnetAccount;
-pub use test_toml::TestTomlGenerator;
-pub use wrapped_spl_types::{arbitrary_mint_account, MintWrapper, arbitrary_token_account, TokenAccountWrapper};
+pub use test_toml_generator::TestTomlGenerator;
+pub use wrapped_spl_types::{spl_mint_account, SplMintAccount, spl_token_account, SplTokenAccount};
 
 /// Use this struct as type T for any [GeneratedAccount] or [ClonedAccount]
 /// owned by `SystemProgram` (e.g. typical user accounts).
