@@ -25,6 +25,13 @@ impl SplMintAccount {
     pub fn from_mint(mint: anchor_spl::token::Mint) -> Self {
         Self(mint)
     }
+
+    /// Indirect, but necessary way to instantiate this type from a vanilla `spl_token` type.
+    pub fn from_spl_mint(mint: spl_token::state::Mint) -> Self {
+        let mut serialized = vec!(0; 82);  // len found in `mint_act.pack_to_slice`
+        mint.pack_into_slice(&mut serialized);
+        Self::try_deserialize(&mut serialized.as_slice()).unwrap()
+    }
 }
 
 /// Anchor uses this trait to enforce proper program ownership during account deserialization.
@@ -75,6 +82,13 @@ impl SplTokenAccount {
     /// Preferred factory function to convert into this data type.
     pub fn from_token_account(token_account: anchor_spl::token::TokenAccount) -> Self {
         Self(token_account)
+    }
+
+    /// Indirect, but necessary way to instantiate this type from a vanilla `spl_token` type.
+    pub fn from_spl_token_account(act: spl_token::state::Account) -> Self {
+        let mut serialized = vec!(0; 165);  // len found in `token_account.pack_to_slice`
+        act.pack_into_slice(&mut serialized);
+        Self::try_deserialize(&mut serialized.as_slice()).unwrap()
     }
 }
 
