@@ -3,6 +3,7 @@ use clap::parser::ArgMatches;
 use solana_clap_v3_utils::keypair::signer_from_path;
 use solana_sdk::pubkey::Pubkey;
 use std::str::FromStr;
+use anchor_client::Cluster;
 use solana_sdk::signature::Signer;
 use clap::Parser;
 use solana_cli_config::Config;
@@ -23,7 +24,7 @@ pub struct UrlArg {
 impl UrlArg {
     pub fn resolve(&self, config: Option<&Config>) -> Result<String> {
         if let Some(url) = self.url.clone() {
-            return Ok(url);
+            return Ok(Cluster::from_str(&url)?.to_string());
         }
         if let Some(config) = config {
             return Ok(config.json_rpc_url.clone());
