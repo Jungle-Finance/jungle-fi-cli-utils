@@ -19,7 +19,7 @@ pub fn resolve_url(
 ) -> anyhow::Result<String> {
     // Prioritize the URL, if passed in.
     if let Some(url) = url.clone() {
-        return Ok(Cluster::from_str(&url)?.to_string());
+        return Ok(Cluster::from_str(&url)?.url().to_string());
     }
     // Otherwise, call back to the config file.
     // Find the config file (or create a default one), and use the supplied

@@ -24,7 +24,7 @@ pub struct UrlArg {
 impl UrlArg {
     pub fn resolve(&self, config: Option<&Config>) -> Result<String> {
         if let Some(url) = self.url.clone() {
-            return Ok(Cluster::from_str(&url)?.to_string());
+            return Ok(Cluster::from_str(&url)?.url().to_string());
         }
         if let Some(config) = config {
             return Ok(config.json_rpc_url.clone());
