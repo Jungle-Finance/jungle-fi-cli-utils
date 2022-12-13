@@ -1,5 +1,7 @@
 mod parse_keypair_from_path;
 
+use std::str::FromStr;
+use anchor_client::Cluster;
 use solana_cli_config::Config;
 use solana_sdk::signature::Keypair;
 use log::warn;
@@ -17,7 +19,7 @@ pub fn resolve_url(
 ) -> anyhow::Result<String> {
     // Prioritize the URL, if passed in.
     if let Some(url) = url.clone() {
-        return Ok(url);
+        return Ok(Cluster::from_str(&url)?.to_string());
     }
     // Otherwise, call back to the config file.
     // Find the config file (or create a default one), and use the supplied
