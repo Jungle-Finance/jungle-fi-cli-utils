@@ -1,0 +1,20 @@
+[package]
+name = "test-localnet"
+version = "0.2.0"
+edition = "2021"
+
+# NOTE: We make this a separate workspace because of versioning issues,
+# this time because solana-net-utils relies on Clap 3.2.23 whereas anchor-cli
+# and other solana crates use clap v4.
+[workspace]
+
+[[bin]]
+name = "localnet"
+path = "src/main.rs"
+
+[dependencies]
+jungle-fi-localnet-tools = { path = "../../../localnet-tools" }
+clap = "4.0.26"
+solana-sdk = "1.14.1"
+solana-client = "1.14.1"
+anyhow = "1.0.66"

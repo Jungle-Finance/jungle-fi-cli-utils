@@ -1,10 +1,10 @@
 /// A variety of QoL functions and tooling to do extensive
 /// localnet setup and testing.
 use std::io::Write;
-use anchor_client::anchor_lang;
+use anchor_lang;
 use solana_program::pubkey::Pubkey;
-use anchor_client::anchor_lang::prelude::System;
-use anchor_client::anchor_lang::Id;
+use anchor_lang::prelude::System;
+use anchor_lang::Id;
 
 mod wrapped_spl_types;
 pub mod test_toml_generator;

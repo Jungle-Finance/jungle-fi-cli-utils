@@ -1,0 +1,13 @@
+{
+  "account": {
+    "data": [
+      "DK9MyG79tYbuFWK4493ofnctWSr4QT6wdy9vDo5jzv9bAZRaRQGjhCvRv7NUAkkf8W7oM2LuN2SCxqkgy3ZRw3W4ntiPzCC1UH2bkd55XG5jvi6",
+      "base58"
+    ],
+    "executable": false,
+    "lamports": 179771985948,
+    "owner": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+    "rentEpoch": 361
+  },
+  "pubkey": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+}

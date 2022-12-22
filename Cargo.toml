@@ -1,9 +1,7 @@
 [workspace]
 members = [
-    "clap-v3-utils",
     "cli-utils",
     "rpc-client-headers",
-    "genesys_go_rpc_auth",
     "localnet-tools",
     "client-tx-processor",
     "threadsafe-signer",

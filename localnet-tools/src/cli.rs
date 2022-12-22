@@ -11,7 +11,6 @@ pub enum Subcommand {
         cfg: String,
         flags: Vec<String>,
     },
-    // TODO Dump { address, url },
 }
 
 #[derive(Debug, Parser)]
@@ -25,7 +24,7 @@ impl SolanaLocalnetCli {
         if let Some(subcommand) = self.command {
             match subcommand {
                 Subcommand::FromTestConfig { cfg, flags } => {
-                    let test_config = TestConfig::discover(&cfg)?;
+                    let test_config = TestConfig::discover(&cfg, vec![])?;
                     if let Some(test_config) = test_config {
                         localnet_from_test_config(test_config, flags)?;
                         return Ok(())

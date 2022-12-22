@@ -353,11 +353,10 @@ pub fn start_test_validator(
 
 pub fn localnet_from_test_config(test_config: TestConfig, flags: Vec<String>) -> Result<()> {
     for (_, test_toml) in &*test_config {
-        // Copy the test suite into a default Anchor [Config].
+        // Copy the test suite into the Anchor [Config].
         // Set the startup_wait to zero, since it's irrelevant when we aren't running tests.
-        //let mut anchor_cfg = Config::default();
         let mut anchor_cfg = Config::discover(
-            &ConfigOverride::default()
+            &ConfigOverride::default(),
         )?.unwrap();
         let mut test_validator = test_toml.test.clone();
         if let Some(inner) = test_validator {
@@ -370,7 +369,6 @@ pub fn localnet_from_test_config(test_config: TestConfig, flags: Vec<String>) ->
             test_validator = Some(with_no_wait);
         }
         anchor_cfg.test_validator = test_validator;
-        //anchor_cfg.test_config = Some(test_config.clone());
         let with_path = &WithPath::new(
             anchor_cfg, PathBuf::from("./Anchor.toml"));
         // Gather the CLI flags
@@ -385,16 +383,9 @@ pub fn localnet_from_test_config(test_config: TestConfig, flags: Vec<String>) ->
             false,
         )?;
 
-        // [Config] is not [Clone], so we just remake it here.
-        // let mut anchor_cfg = Config::default();
-        // anchor_cfg.test_validator = test_toml.test.clone();
-        // anchor_cfg.test_config = Some(test_config.clone());
         let url = test_validator_rpc_url(&test_toml.test);
         let log_streams = stream_logs(
             &with_path,
-            // &WithPath::new(anchor_cfg,
-            //                PathBuf::from("./Anchor.toml"),
-            // ),
             &url,
         );
 
@@ -427,7 +418,7 @@ pub fn start_localnet_from_test_toml(test_toml_path: &str, flags: Vec<String>) -
     if !path.is_file() {
         return Err(anyhow!("{} is not a file.", &test_toml_path));
     }
-    let test_config = TestConfig::discover(&path.parent().unwrap())?;
+    let test_config = TestConfig::discover(&path.parent().unwrap(), vec![])?;
     if let Some(test_config) = test_config {
         localnet_from_test_config(test_config, flags)?;
         return Ok(());

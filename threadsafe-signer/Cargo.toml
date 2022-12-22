@@ -1,10 +1,10 @@
 [package]
 name = "solana-threadsafe-signer"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-solana-sdk = "1.10.29"
-solana-program = "1.10.29"
+solana-sdk = "1.14.11"
+solana-program = "1.14.11"

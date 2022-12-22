@@ -143,7 +143,7 @@ impl TestTomlGenerator {
     }
 
     pub fn start_localnet(&self, flags: Vec<String>) -> anyhow::Result<()> {
-        let test_config = TestConfig::discover(&self.save_directory)?;
+        let test_config = TestConfig::discover(&self.save_directory, vec![])?;
         if let Some(test_config) = test_config {
             localnet_from_test_config(test_config, flags)?;
             return Ok(())
