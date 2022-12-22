@@ -4,6 +4,12 @@ skip-lint = false
 [programs.localnet]
 test_program = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
 
+[workspace]
+exclude = ["localnet"]
+members = [
+    "./programs/test-program/",
+]
+
 [provider]
 cluster = "localnet"
 wallet = "~/.config/solana/id.json"
