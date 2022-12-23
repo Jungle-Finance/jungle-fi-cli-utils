@@ -1,12 +1,9 @@
-/// The struct below wraps the often-acquired [Box<dyn<Signer>>] to:
-/// 1. Satisfy [T: Signer].
-/// 2. Is threadsafe.
-/// 3. Serve as a signer with the [Clone] trait.
+use solana_sdk::signature::{Signature, Signer, SignerError};
 use std::sync::{Arc, Mutex};
 use solana_program::pubkey::Pubkey;
-use solana_sdk::signature::{Signature, Signer, SignerError};
 
 /// Basic struct that imbues a [T: Signer] with [Clone + Send + Sync].
+#[derive(Debug)]
 pub struct ThreadsafeSigner<T: Signer> {
     pub inner: Arc<Mutex<T>>,
 }
@@ -47,11 +44,8 @@ mod tests {
     use std::thread;
     use solana_sdk::signature::keypair_from_seed;
     use solana_sdk::signature::Signer;
-    use super::*;
+    use crate::threadsafe_signer::ThreadsafeSigner;
 
-    fn takes_trait_object(signer: Box<dyn Signer>) {
-        signer.pubkey();
-    }
 
     #[test]
     fn threadsafe_keypair() {
@@ -60,6 +54,9 @@ mod tests {
         let pubkey = keypair.pubkey();
         let data = [1u8];
         let sig = keypair.sign_message(&data);
+        let takes_trait_object = |signer: Box<dyn Signer>| {
+            signer.pubkey()
+        };
 
         // Test thread safety
         {

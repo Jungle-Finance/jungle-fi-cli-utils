@@ -4,5 +4,5 @@ members = [
     "rpc-client-headers",
     "localnet-tools",
     "client-tx-processor",
-    "threadsafe-signer",
+    "extra-signers",
 ]

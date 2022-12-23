@@ -1,10 +1,15 @@
 [package]
-name = "solana-threadsafe-signer"
+name = "solana-extra-signers"
 version = "0.2.0"
 edition = "2021"
+description = "an assortment of useful signers"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.68"
 solana-sdk = "1.14.11"
 solana-program = "1.14.11"
+solana-remote-wallet = "1.14.11"
+solana-clap-v3-utils = "1.14.11"
+uriparse = "0.6.4"
